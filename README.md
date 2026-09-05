@@ -42,16 +42,35 @@ pct set <CTID> --memory 2048 --swap 4096
 
 ## Google Calendar (two-way)
 
+Google will **not** accept a LAN IP as the OAuth redirect (`192.168.x.x`, `.local`, etc.). Redirect URIs must be a public domain on HTTPS, except **localhost / 127.0.0.1**, which may use HTTP. Keep the OAuth consent screen on **Testing** (Production rejects localhost).
+
+Do the one-time Google sign-in through an SSH tunnel from a laptop, then leave the Pi on the LAN URL.
+
 1. Create a Google Cloud project and enable the **Google Calendar API**.
-2. Configure an OAuth consent screen (External is fine for a family; add your Google accounts as testers).
+2. Configure an OAuth consent screen (External is fine for a family; add your Google accounts as testers). Publishing status: **Testing**.
 3. Create an OAuth client of type **Web application**.
-4. Add the authorized redirect URI:
+4. Authorized redirect URI (exact, no LAN IP):
 
-   `http://<server-ip>:3847/api/auth/google/callback`
+   `http://127.0.0.1:3847/api/auth/google/callback`
 
-5. Put the client ID and secret in `.env`, along with `APP_URL` / `GOOGLE_REDIRECT_URI`.
-6. On a **phone on the LAN**, open Settings on the dashboard and tap **Connect Google**. Sign in with the household Google account (or one account that has the family calendars shared to it).
-7. Assign each person a calendar, then Save.
+5. In `.env` on the LXC:
+
+   ```
+   APP_URL=http://<lxc-lan-ip>:3847
+   GOOGLE_REDIRECT_URI=http://127.0.0.1:3847/api/auth/google/callback
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   ```
+
+   Restart the app.
+6. From a laptop on the LAN:
+
+   ```bash
+   ssh -L 3847:127.0.0.1:3847 <user>@<lxc-lan-ip>
+   ```
+
+   Open **http://127.0.0.1:3847/settings** (not the LAN IP) and tap **Connect Google**. Sign in with the household Google account (or one that has the family calendars shared to it).
+7. Assign each person a calendar, then Save. After that the wall and the Pi can keep using `http://<lxc-lan-ip>:3847`.
 
 Sync runs about every five minutes. Edits from the wall write through the Calendar API immediately.
 

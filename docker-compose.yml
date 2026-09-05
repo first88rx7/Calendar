@@ -1,0 +1,14 @@
+services:
+  household:
+    build: .
+    ports:
+      - "3847:3847"
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /app/data
+      PORT: "3847"
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

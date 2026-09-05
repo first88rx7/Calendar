@@ -1,0 +1,23 @@
+{
+  "familyName": "Household",
+  "weekStartsOn": 0,
+  "idleTimeoutMs": 180000,
+  "nightClockStart": "22:00",
+  "nightClockEnd": "06:30",
+  "people": [
+    { "id": "alex", "name": "Alex", "color": "#38bdf8", "calendarId": "" },
+    { "id": "sam", "name": "Sam", "color": "#f472b6", "calendarId": "" },
+    { "id": "family", "name": "Family", "color": "#a3e635", "calendarId": "" }
+  ],
+  "weather": {
+    "latitude": 47.6062,
+    "longitude": -122.3321,
+    "timezone": "America/Los_Angeles",
+    "temperatureUnit": "fahrenheit",
+    "locationLabel": "Seattle"
+  },
+  "mealie": {
+    "publicUrl": "",
+    "groupSlug": "home"
+  }
+}

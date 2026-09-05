@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+data/*.db
+data/*.db-*
+data/config.json
+.env
+.env.local
+agent-tools

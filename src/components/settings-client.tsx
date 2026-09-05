@@ -156,10 +156,16 @@ export function SettingsClient() {
     await loadConfig();
   }
 
-  async function lookupZip() {
+  async function lookupZip(rawZip = zip) {
+    const value = rawZip.trim();
+    if (!value) {
+      toast.error("Enter a 5-digit US ZIP code");
+      return;
+    }
+    setZip(value);
     setLookingUpZip(true);
     try {
-      const response = await fetch(`/api/geo?zip=${encodeURIComponent(zip)}`, { cache: "no-store" });
+      const response = await fetch(`/api/geo?zip=${encodeURIComponent(value)}`, { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) {
         toast.error(data.error || "Could not look up that ZIP");
@@ -176,6 +182,7 @@ export function SettingsClient() {
       setLongitude(String(data.longitude));
       setTimezone(data.timezone);
       setLocationLabel(data.locationLabel);
+      if (data.postalCode) setZip(data.postalCode);
       const persist = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -372,25 +379,28 @@ export function SettingsClient() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="zip">US ZIP code</Label>
-          <div className="flex flex-wrap gap-2">
+          <form
+            className="flex flex-wrap gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const typed = String(new FormData(event.currentTarget).get("zip") || "");
+              void lookupZip(typed);
+            }}
+          >
             <Input
               id="zip"
+              name="zip"
               className="h-12 min-w-[8rem] flex-1 text-base"
               inputMode="numeric"
+              autoComplete="postal-code"
               placeholder="55374"
               value={zip}
               onChange={(e) => setZip(e.target.value)}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-12 text-base"
-              disabled={lookingUpZip}
-              onClick={() => void lookupZip()}
-            >
+            <Button type="submit" variant="secondary" className="h-12 text-base" disabled={lookingUpZip}>
               {lookingUpZip ? "Looking up…" : "Fill from ZIP"}
             </Button>
-          </div>
+          </form>
           <p className="text-sm text-muted-foreground">
             Looks up city, coordinates, and timezone, then refreshes the kitchen forecast.
           </p>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install a fullscreen kiosk on a Raspberry Pi Zero 2 W (or Banana Pi M2 Zero).
+# Install a fullscreen kiosk on a Raspberry Pi Zero 2 / Zero 2 W (or Banana Pi M2 Zero).
 # Run on the Pi as the auto-login user, not as root, and not on the home server.
 set -euo pipefail
 

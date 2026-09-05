@@ -4,6 +4,8 @@ A touch-first family wall dashboard: a week calendar with two-way Google Calenda
 
 The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie. That is the only arrangement that fits 512MB of RAM plus a 1080p touchscreen.
 
+**Setup is in this README** (home server, Google, Mealie, PhotoPrism). **Pi imaging and “show only this app”** is in [deploy/kiosk/README.md](deploy/kiosk/README.md): Raspberry Pi OS Lite (64-bit) on a Zero 2 / Zero 2 W, then `install.sh`.
+
 ## What you get
 
 - Week grid, color-coded by person, tap to add/edit/delete events
@@ -90,7 +92,7 @@ Open-Meteo is used by default. Set latitude, longitude, timezone, and `fahrenhei
 
 Do not run this Node app on the 512MB board. The Pi only opens a fullscreen browser at the home-server URL.
 
-**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 W. That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else.
+**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub.
 
 Step-by-step (Imager settings, wiring, `scp`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
 

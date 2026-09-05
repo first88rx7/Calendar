@@ -1,16 +1,18 @@
-# Kitchen kiosk (Raspberry Pi Zero 2 W)
+# Kitchen kiosk (Raspberry Pi Zero 2)
 
 The Pi is only a display. The dashboard runs on the **home server**. After install, the Pi boots straight into this app: no desktop, no browser chrome, no other programs on screen.
 
 ## What to install on the Pi
 
-Use **Raspberry Pi OS Lite (64-bit)** on a **Raspberry Pi Zero 2 W**.
+Use **Raspberry Pi OS Lite (64-bit)** on a **Raspberry Pi Zero 2** / **Zero 2 W**.
+
+Raspberry Pi never sold a Zero 2 without radios. Early boards are silkscreened “Raspberry Pi Zero 2” with no **W**; later ones say “Zero 2 W”. Same chip, same 2.4 GHz Wi-Fi, same image. In Imager, pick **Raspberry Pi Zero 2 W**.
 
 That is the Lite image in [Raspberry Pi Imager](https://www.raspberrypi.com/software/) — not “Raspberry Pi OS (desktop)”, and not the 32-bit image. Lite has no PIXEL desktop; the installer adds a tiny X session whose only job is the dashboard.
 
 | Board | OS | Browser |
 | --- | --- | --- |
-| Raspberry Pi Zero 2 W (preferred) | Raspberry Pi OS Lite **64-bit** | Chromium kiosk; install Cog if it is too slow |
+| Raspberry Pi Zero 2 / Zero 2 W (preferred) | Raspberry Pi OS Lite **64-bit** | Chromium kiosk; install Cog if it is too slow |
 | Original Raspberry Pi Zero / Zero W | Raspberry Pi OS Lite **32-bit** | Cog (WPE). Chromium is usually too heavy |
 | Banana Pi M2 Zero v1.0 | Armbian (Jammy/Bookworm CLI) | Chromium or Cog; fit the external Wi-Fi antenna |
 
@@ -23,22 +25,24 @@ Do **not** run Docker or Node for this app on the Pi.
 - Mini-HDMI → HDMI for the 15.6" panel (1920×1080 landscape)
 - Micro-USB **OTG** + a **powered** USB hub for the touch digitizer
 - Monitor on its **own** power supply — do not power a 15.6" panel from the Pi 5V rail
-- Pi Zero 2 W powered from a solid 5V micro-USB supply of its own
+- Pi Zero 2 powered from a solid 5V micro-USB supply of its own
 
 ESP32 boards are not used for this HDMI kiosk.
 
 ## 1. Flash the card (on a laptop)
 
 1. Install [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
-2. **Device:** Raspberry Pi Zero 2 W.
+2. **Device:** Raspberry Pi Zero 2 W (use this even if the board only says “Zero 2”).
 3. **OS:** Raspberry Pi OS (other) → **Raspberry Pi OS Lite (64-bit)**.
 4. Open the gear / Edit settings:
    - hostname (example: `kitchen-pi`)
    - username and password
-   - Wi-Fi SSID and password (same LAN as the home server)
+   - Wi-Fi SSID and password (2.4 GHz, same LAN as the home server). The Zero 2 does not do 5 GHz.
    - locale and keyboard
    - enable SSH
 5. Write the card, put it in the Pi, connect HDMI and power. First boot can take a few minutes while it resizes the card.
+
+If you would rather not use Wi-Fi, skip the SSID in Imager and plug a USB Ethernet adapter into the **powered** hub (the same hub as the touch screen). After boot, `ip addr` should show `eth0` or `enx…` with a LAN address. Then `scp` / `ssh` using that IP.
 
 The home-server app should already be up at `http://<server-ip>:3847`. Check that URL on a phone first.
 

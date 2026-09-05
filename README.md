@@ -88,24 +88,19 @@ Open-Meteo is used by default. Set latitude, longitude, timezone, and `fahrenhei
 
 ## Kiosk (Pi Zero 2 / Banana Pi M2 Zero)
 
-Do not run this Node app on the 512MB board.
+Do not run this Node app on the 512MB board. The Pi only opens a fullscreen browser at the home-server URL.
 
-Wiring:
+**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 W. That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else.
 
-- Mini-HDMI → HDMI for video
-- Micro-USB OTG + powered hub for USB touch
-- Monitor on its **own** power supply
-
-On the Pi:
+Step-by-step (Imager settings, wiring, `scp`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
 
 ```bash
-HOUSEHOLD_URL=http://<home-server-ip>:3847 ./deploy/kiosk/install.sh
+# on the Pi, after copying deploy/kiosk onto it
+HOUSEHOLD_URL=http://<home-server-ip>:3847 ./install.sh
 sudo reboot
 ```
 
-Details are in [deploy/kiosk/README.md](deploy/kiosk/README.md). Raspberry Pi Zero 2 W with Raspberry Pi OS is the smoother path. Banana Pi M2 Zero v1.0 works on Armbian; use the external Wi-Fi antenna.
-
-If Chromium is too heavy, install Cog (WPE WebKit). The kiosk launcher will use it.
+Banana Pi M2 Zero v1.0 works on Armbian; use the external Wi-Fi antenna. If Chromium is too heavy, install Cog (WPE WebKit). The launcher will use it.
 
 ## LAN only
 

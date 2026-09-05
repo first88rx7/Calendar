@@ -127,7 +127,7 @@ export function Dashboard() {
           onPrev={() => setWeekStart(shiftDateKey(days[0], -7))}
           onNext={() => setWeekStart(shiftDateKey(days[0], 7))}
         />
-        <MealsRail meals={data.meals} days={days} today={today} timeZone={timezone} />
+        <MealsRail meals={data.meals} today={today} timeZone={timezone} />
       </div>
       <EventSheet
         state={sheet}

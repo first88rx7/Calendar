@@ -71,12 +71,10 @@ export function RecipesClient() {
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Mealie</p>
           <h1 className="text-3xl font-semibold">Recipes</h1>
         </div>
-        {config?.mealieOpenUrl && (
-          <Link href="/mealie" className={buttonVariants({ className: "h-12 px-4 text-base" })}>
-            Open Mealie
-            <ExternalLink className="size-4" />
-          </Link>
-        )}
+        <Link href="/mealie" className={buttonVariants({ className: "h-12 px-4 text-base" })}>
+          Open Mealie
+          <ExternalLink className="size-4" />
+        </Link>
       </header>
       <form
         className="flex gap-2"

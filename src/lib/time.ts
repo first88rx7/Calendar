@@ -1,7 +1,6 @@
 import {
   addDays,
   addMinutes,
-  differenceInCalendarDays,
   parseISO,
 } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
@@ -127,11 +126,6 @@ export function isNightHours(
   return current >= start || current < end;
 }
 
-export function daysBetween(a: string, b: string) {
-  return differenceInCalendarDays(parseISO(b), parseISO(a));
-}
-
-export function parseHm(value: string) {
-  const [h, m] = value.split(":").map(Number);
-  return { h: h || 0, m: m || 0 };
+export function rollingDays(startKey: string, count = 7) {
+  return Array.from({ length: count }, (_, i) => shiftDateKey(startKey, i));
 }

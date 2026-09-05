@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { entryTypeLabel, mediaSrc } from "@/lib/media";
-import { shiftDateKey, todayKey, weekKeys, weekdayShort } from "@/lib/time";
+import { rollingDays, shiftDateKey, todayKey, weekdayShort } from "@/lib/time";
 import type { DashboardPayload } from "@/lib/types";
 
 export default function MealsPage() {
@@ -28,10 +28,7 @@ export default function MealsPage() {
 
   const timezone = data?.config.weather.timezone || "America/Los_Angeles";
   const today = todayKey(timezone);
-  const days = useMemo(
-    () => weekKeys(today, data?.config.weekStartsOn ?? 0, timezone),
-    [today, data?.config.weekStartsOn, timezone],
-  );
+  const days = useMemo(() => rollingDays(today, 7), [today]);
 
   if (error && !data) {
     return (
@@ -50,22 +47,20 @@ export default function MealsPage() {
     <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">This week</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Next seven days</p>
           <h1 className="text-3xl font-semibold">What we are eating</h1>
         </div>
-        {data.config.mealieOpenUrl && (
-          <Link href="/mealie" className={buttonVariants({ className: "h-12 px-4 text-base" })}>
+        <Link href="/mealie" className={buttonVariants({ className: "h-12 px-4 text-base" })}>
             Open Mealie
             <ExternalLink className="size-4" />
           </Link>
-        )}
       </header>
       {!data.config.mealieConfigured && (
         <p className="rounded-xl bg-secondary px-4 py-3 text-sm text-muted-foreground">
           Showing sample meals. Add a Mealie URL and API token on the home server to pull your real plan.
         </p>
       )}
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-h-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         {days.map((day) => {
           const meals = data.meals.filter((meal) => meal.date === day);
           const isToday = day === today;

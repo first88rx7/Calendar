@@ -1,24 +1,23 @@
 import Link from "next/link";
 import { entryTypeLabel, mediaSrc } from "@/lib/media";
-import { weekdayShort } from "@/lib/time";
+import { shiftDateKey, weekdayShort } from "@/lib/time";
 import type { MealEntry } from "@/lib/types";
 
 export function MealsRail({
   meals,
-  days,
   today,
   timeZone,
 }: {
   meals: MealEntry[];
-  days: string[];
   today: string;
   timeZone: string;
 }) {
   const tonight = meals.filter((meal) => meal.date === today);
-  const rest = meals.filter((meal) => meal.date > today);
+  const rest = meals.filter((meal) => meal.date > today && meal.date <= shiftDateKey(today, 6));
+  const tomorrow = shiftDateKey(today, 1);
 
   return (
-    <aside className="hidden w-72 shrink-0 flex-col gap-3 xl:flex">
+    <aside className="hidden w-72 shrink-0 flex-col gap-3 lg:flex">
       <section className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Tonight</h2>
@@ -47,7 +46,7 @@ export function MealsRail({
             {rest.map((meal) => (
               <li key={`${meal.date}-${meal.entryType}-${meal.title}`}>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {meal.date === days[1] ? "Tomorrow" : weekdayShort(meal.date, timeZone)} · {entryTypeLabel(meal.entryType)}
+                  {meal.date === tomorrow ? "Tomorrow" : weekdayShort(meal.date, timeZone)} · {entryTypeLabel(meal.entryType)}
                 </p>
                 {meal.recipeSlug ? (
                   <Link href={`/recipes?open=${meal.recipeSlug}`} className="font-medium hover:underline">

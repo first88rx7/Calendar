@@ -1,13 +1,14 @@
 {
-  "familyName": "Household",
+  "familyName": "Schumann Family",
+  "homeName": "Riverside Home",
   "weekStartsOn": 0,
   "idleTimeoutMs": 180000,
   "nightClockStart": "22:00",
   "nightClockEnd": "06:30",
   "people": [
-    { "id": "alex", "name": "Alex", "color": "#38bdf8", "calendarId": "" },
-    { "id": "sam", "name": "Sam", "color": "#f472b6", "calendarId": "" },
-    { "id": "family", "name": "Family", "color": "#a3e635", "calendarId": "" }
+    { "id": "alex", "name": "Alex", "color": "#3B9B5C", "calendarId": "" },
+    { "id": "sam", "name": "Sam", "color": "#6B5B95", "calendarId": "" },
+    { "id": "family", "name": "Family", "color": "#3B6FDB", "calendarId": "" }
   ],
   "weather": {
     "latitude": 47.6062,

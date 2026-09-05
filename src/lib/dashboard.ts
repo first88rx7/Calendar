@@ -1,11 +1,11 @@
 import { getPublicConfig } from "@/lib/config";
-import { listStoredEvents, readWeatherCache, seedMockIfNeeded } from "@/lib/mock";
-import { listMeals } from "@/lib/mealie";
+import { listStoredEvents, mockRecipes, readWeatherCache, seedMockIfNeeded } from "@/lib/mock";
+import { listMeals, searchRecipes } from "@/lib/mealie";
 import { listSyncStatus } from "@/lib/sync-state";
 import { eventTouchesDay, shiftDateKey, weekKeys } from "@/lib/time";
-import type { DashboardPayload } from "@/lib/types";
+import type { DashboardPayload, RecipeSummary } from "@/lib/types";
 
-export function loadDashboard(from: string, to: string): DashboardPayload {
+export async function loadDashboard(from: string, to: string): Promise<DashboardPayload> {
   seedMockIfNeeded();
   const config = getPublicConfig();
   const tz = config.weather.timezone;
@@ -29,10 +29,17 @@ export function loadDashboard(from: string, to: string): DashboardPayload {
   const mealFrom = from < today ? from : today;
   const mealHorizon = shiftDateKey(today, 6);
   const mealTo = to > mealHorizon ? to : mealHorizon;
+  let recipes: RecipeSummary[] = mockRecipes();
+  try {
+    recipes = await searchRecipes("");
+  } catch {
+    recipes = mockRecipes();
+  }
   return {
     config,
     events,
     meals: listMeals(mealFrom, mealTo),
+    recipes: recipes.slice(0, 5),
     weather: readWeatherCache(),
     status: listSyncStatus(),
     range: { from, to },

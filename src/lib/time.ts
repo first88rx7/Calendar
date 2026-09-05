@@ -126,6 +126,23 @@ export function isNightHours(
   return current >= start || current < end;
 }
 
+export function greeting(timeZone: string, now = new Date()) {
+  const hour = Number(formatInTimeZone(now, timeZone, "H"));
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+export function formatWeekRange(from: string, to: string, timeZone: string) {
+  const start = fromZonedTime(`${from}T12:00:00`, timeZone);
+  const end = fromZonedTime(`${to}T12:00:00`, timeZone);
+  return `${formatInTimeZone(start, timeZone, "MMM d")} – ${formatInTimeZone(end, timeZone, "MMM d, yyyy")}`;
+}
+
+export function hourInZone(iso: string, timeZone: string) {
+  return Number(formatInTimeZone(parseISO(iso), timeZone, "H"));
+}
+
 export function rollingDays(startKey: string, count = 7) {
   return Array.from({ length: count }, (_, i) => shiftDateKey(startKey, i));
 }

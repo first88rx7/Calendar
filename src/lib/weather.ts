@@ -2,7 +2,7 @@ import { readConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { mockWeather } from "@/lib/mock";
 import { setSyncState } from "@/lib/sync-state";
-import type { WeatherDay, WeatherNow, WeatherPayload } from "@/lib/types";
+import type { WeatherDay, WeatherHour, WeatherNow, WeatherPayload } from "@/lib/types";
 
 export { weatherLabel } from "@/lib/weather-copy";
 
@@ -20,6 +20,11 @@ type OpenMeteoResponse = {
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     precipitation_probability_max: number[];
+  };
+  hourly?: {
+    time: string[];
+    temperature_2m: number[];
+    weather_code: number[];
   };
 };
 
@@ -44,6 +49,7 @@ export async function syncWeather() {
       "temperature_2m_min",
       "precipitation_probability_max",
     ].join(","),
+    hourly: "temperature_2m,weather_code",
     temperature_unit: unit,
     wind_speed_unit: "mph",
     forecast_days: "7",
@@ -74,7 +80,17 @@ export async function syncWeather() {
       tempMin: Math.round(data.daily!.temperature_2m_min[i]),
       precipitationProbability: data.daily!.precipitation_probability_max[i] ?? 0,
     }));
-    const payload: WeatherPayload = { current, daily, timezone, unit };
+    const hourly: WeatherHour[] = [];
+    if (data.hourly) {
+      for (let i = 0; i < data.hourly.time.length; i++) {
+        hourly.push({
+          time: data.hourly.time[i],
+          temperature: Math.round(data.hourly.temperature_2m[i]),
+          weatherCode: data.hourly.weather_code[i],
+        });
+      }
+    }
+    const payload: WeatherPayload = { current, daily, hourly, timezone, unit };
     getDb()
       .prepare(
         `INSERT INTO weather_cache (id, payload, updated_at) VALUES (1, @payload, @updatedAt)

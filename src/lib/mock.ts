@@ -6,7 +6,7 @@ import { shiftDateKey, todayKey } from "@/lib/time";
 import type { CalendarEvent, MealEntry, RecipeDetail, RecipeSummary, WeatherPayload } from "@/lib/types";
 
 export function seedMockIfNeeded() {
-  if (getDb().prepare("SELECT value FROM meta WHERE key = 'mock_seeded'").get()) {
+  if (getDb().prepare("SELECT value FROM meta WHERE key = 'mock_seeded_v2'").get()) {
     return;
   }
   seedMock();
@@ -78,31 +78,31 @@ export function seedMock() {
   timed("mock-soccer", alex, "Soccer practice", 0, 16, 30, 90, {
     location: "North field",
   });
-  timed("mock-dinner", family, "Dinner with grandparents", 0, 18, 0, 120);
+  timed("mock-dinner", family, "Family dinner", 0, 18, 0, 90);
   timed("mock-dentist", sam, "Dentist", 1, 8, 15, 45, {
     location: "Main Street Dental",
   });
   allDay("mock-trash", family, "Trash day", 1);
+  timed("mock-workout", sam, "Workout", 2, 10, 0, 60);
   timed("mock-band", alex, "Band concert", 3, 19, 0, 120, {
     location: "School auditorium",
   });
+  timed("mock-bookclub", sam, "Book club", 3, 19, 30, 90);
   allDay("mock-library", sam, "Library books due", 4);
-  timed("mock-pizza", family, "Pizza night", 5, 18, 0, 90);
+  timed("mock-piano", alex, "Piano lesson", 4, 16, 0, 45);
+  timed("mock-pizza", family, "Movie night", 5, 18, 0, 120);
   timed("mock-market", family, "Farmers market", 6, 10, 0, 90);
-  timed("mock-piano", alex, "Piano lesson", -1, 15, 0, 45);
+  allDay("mock-church", family, "Church", 6);
+  timed("mock-soccer2", alex, "Soccer", -1, 16, 0, 90);
 
   const meals: MealEntry[] = [
-    { date: today, entryType: "dinner", title: "Sheet-pan chicken and broccoli" },
-    {
-      date: shiftDateKey(today, 1),
-      entryType: "dinner",
-      title: "Taco Tuesday leftovers, but on a new day",
-    },
-    { date: shiftDateKey(today, 2), entryType: "dinner", title: "Tomato soup and grilled cheese" },
-    { date: shiftDateKey(today, 3), entryType: "dinner", title: "Baked salmon and rice" },
-    { date: shiftDateKey(today, 4), entryType: "dinner", title: "Pasta with garlic bread" },
-    { date: shiftDateKey(today, 5), entryType: "dinner", title: "Homemade pizza" },
-    { date: shiftDateKey(today, 6), entryType: "breakfast", title: "Pancakes" },
+    { date: today, entryType: "dinner", title: "Creamy Garlic Chicken Pasta", recipeSlug: "creamy-garlic-chicken-pasta", imageUrl: "/recipes/pasta.jpg" },
+    { date: shiftDateKey(today, 1), entryType: "dinner", title: "Sheet Pan Chicken Fajitas", recipeSlug: "sheet-pan-chicken-fajitas", imageUrl: "/recipes/fajitas.jpg" },
+    { date: shiftDateKey(today, 2), entryType: "dinner", title: "Beef and Broccoli Stir Fry", recipeSlug: "beef-and-broccoli-stir-fry", imageUrl: "/recipes/stirfry.jpg" },
+    { date: shiftDateKey(today, 3), entryType: "dinner", title: "Lemon Herb Salmon", recipeSlug: "lemon-herb-salmon", imageUrl: "/recipes/salmon.jpg" },
+    { date: shiftDateKey(today, 4), entryType: "dinner", title: "Homemade Pizza Night", recipeSlug: "homemade-pizza-night", imageUrl: "/recipes/pizza.jpg" },
+    { date: shiftDateKey(today, 5), entryType: "dinner", title: "Sheet Pan Chicken Fajitas", recipeSlug: "sheet-pan-chicken-fajitas", imageUrl: "/recipes/fajitas.jpg" },
+    { date: shiftDateKey(today, 6), entryType: "breakfast", title: "Lemon Herb Salmon", recipeSlug: "lemon-herb-salmon", imageUrl: "/recipes/salmon.jpg" },
   ];
 
   const mealInsert = db.prepare(
@@ -114,9 +114,9 @@ export function seedMock() {
       date: meal.date,
       entryType: meal.entryType,
       title: meal.title,
-      recipeSlug: slugify(meal.title),
-      recipeId: slugify(meal.title),
-      imageUrl: null,
+      recipeSlug: meal.recipeSlug || slugify(meal.title),
+      recipeId: meal.recipeSlug || slugify(meal.title),
+      imageUrl: meal.imageUrl || null,
     });
   }
 
@@ -129,7 +129,7 @@ export function seedMock() {
   });
 
   db.prepare(
-    "INSERT INTO meta (key, value) VALUES ('mock_seeded', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
+    "INSERT INTO meta (key, value) VALUES ('mock_seeded_v2', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
   ).run();
 }
 
@@ -156,59 +156,60 @@ export function mockWeather(
       tempMin: (f ? 51 : 11) - Math.floor(i / 2),
       precipitationProbability: [10, 70, 0, 20, 60, 5, 0][i] || 10,
     })),
+    hourly: [9, 12, 15, 18, 21].map((hour, i) => ({
+      time: `${today}T${String(hour).padStart(2, "0")}:00`,
+      temperature: (f ? 58 : 14) + i * 2,
+      weatherCode: [2, 2, 3, 2, 1][i] || 2,
+    })),
   };
 }
 
 export function mockRecipes(query = ""): RecipeSummary[] {
   const all: RecipeSummary[] = [
     {
-      id: "sheet-pan-chicken",
-      slug: "sheet-pan-chicken-and-broccoli",
-      name: "Sheet-pan chicken and broccoli",
-      description: "Weeknight tray bake with lemon and garlic.",
-      totalTime: "40 min",
-    },
-    {
-      id: "tacos",
-      slug: "taco-tuesday-leftovers-but-on-a-new-day",
-      name: "Skillet chicken tacos",
-      description: "Warm tortillas, pickled onion, and a lot of lime.",
-      totalTime: "25 min",
-    },
-    {
-      id: "soup",
-      slug: "tomato-soup-and-grilled-cheese",
-      name: "Tomato soup and grilled cheese",
-      description: "The rainy-day pairing.",
+      id: "pasta",
+      slug: "creamy-garlic-chicken-pasta",
+      name: "Creamy Garlic Chicken Pasta",
+      description: "Weeknight pasta with extra garlic.",
       totalTime: "30 min",
+      rating: 4.8,
+      imageUrl: "/recipes/pasta.jpg",
+    },
+    {
+      id: "fajitas",
+      slug: "sheet-pan-chicken-fajitas",
+      name: "Sheet Pan Chicken Fajitas",
+      description: "Peppers, onions, and a hot tray.",
+      totalTime: "25 min",
+      rating: 4.6,
+      imageUrl: "/recipes/fajitas.jpg",
+    },
+    {
+      id: "stirfry",
+      slug: "beef-and-broccoli-stir-fry",
+      name: "Beef and Broccoli Stir Fry",
+      description: "Soy, garlic, and a fast skillet.",
+      totalTime: "20 min",
+      rating: 4.7,
+      imageUrl: "/recipes/stirfry.jpg",
     },
     {
       id: "salmon",
-      slug: "baked-salmon-and-rice",
-      name: "Baked salmon and rice",
-      description: "Oven salmon with soy, honey, and sesame.",
+      slug: "lemon-herb-salmon",
+      name: "Lemon Herb Salmon",
+      description: "Oven salmon with lemon and herbs.",
       totalTime: "35 min",
-    },
-    {
-      id: "pasta",
-      slug: "pasta-with-garlic-bread",
-      name: "Pasta with garlic bread",
-      description: "Red sauce, extra garlic, and a loaf to mop it up.",
-      totalTime: "45 min",
+      rating: 4.9,
+      imageUrl: "/recipes/salmon.jpg",
     },
     {
       id: "pizza",
-      slug: "homemade-pizza",
-      name: "Homemade pizza",
+      slug: "homemade-pizza-night",
+      name: "Homemade Pizza Night",
       description: "Dough from the freezer, toppings from the fridge.",
       totalTime: "20 min",
-    },
-    {
-      id: "pancakes",
-      slug: "pancakes",
-      name: "Pancakes",
-      description: "Saturday stack with maple syrup.",
-      totalTime: "20 min",
+      rating: 4.5,
+      imageUrl: "/recipes/pizza.jpg",
     },
   ];
   const q = query.trim().toLowerCase();

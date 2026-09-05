@@ -4,15 +4,16 @@ import { isGoogleConfigured, readOAuth } from "@/lib/google-store";
 import type { AppConfig, PublicConfig } from "@/lib/types";
 
 export const DEFAULT_CONFIG: AppConfig = {
-  familyName: "Household",
+  familyName: "Schumann Family",
+  homeName: "Riverside Home",
   weekStartsOn: 0,
   idleTimeoutMs: 180_000,
   nightClockStart: "22:00",
   nightClockEnd: "06:30",
   people: [
-    { id: "alex", name: "Alex", color: "#38bdf8", calendarId: "" },
-    { id: "sam", name: "Sam", color: "#f472b6", calendarId: "" },
-    { id: "family", name: "Family", color: "#a3e635", calendarId: "" },
+    { id: "alex", name: "Alex", color: "#3B9B5C", calendarId: "" },
+    { id: "sam", name: "Sam", color: "#6B5B95", calendarId: "" },
+    { id: "family", name: "Family", color: "#3B6FDB", calendarId: "" },
   ],
   weather: {
     latitude: 47.6062,
@@ -62,6 +63,7 @@ export function readConfig(): AppConfig {
   const merged = deepMerge(DEFAULT_CONFIG as unknown as Record<string, unknown>, fileConfig as Record<string, unknown>) as unknown as AppConfig;
 
   if (process.env.FAMILY_NAME) merged.familyName = process.env.FAMILY_NAME;
+  if (process.env.HOME_NAME) merged.homeName = process.env.HOME_NAME;
   if (process.env.WEATHER_LAT) merged.weather.latitude = Number(process.env.WEATHER_LAT);
   if (process.env.WEATHER_LON) merged.weather.longitude = Number(process.env.WEATHER_LON);
   if (process.env.WEATHER_TIMEZONE) merged.weather.timezone = process.env.WEATHER_TIMEZONE;

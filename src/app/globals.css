@@ -84,20 +84,20 @@
 }
 
 .dark {
-  --background: oklch(0.2 0.02 62);
-  --foreground: oklch(0.97 0.01 85);
-  --card: oklch(0.255 0.02 62);
-  --card-foreground: oklch(0.97 0.01 85);
-  --popover: oklch(0.255 0.02 62);
-  --popover-foreground: oklch(0.97 0.01 85);
-  --primary: oklch(0.84 0.11 78);
-  --primary-foreground: oklch(0.23 0.03 62);
-  --secondary: oklch(0.31 0.02 62);
-  --secondary-foreground: oklch(0.97 0.01 85);
-  --muted: oklch(0.31 0.02 62);
-  --muted-foreground: oklch(0.78 0.02 80);
-  --accent: oklch(0.33 0.03 70);
-  --accent-foreground: oklch(0.97 0.01 85);
+  --background: oklch(0.16 0.02 240);
+  --foreground: oklch(0.97 0.01 90);
+  --card: oklch(0.22 0.02 240 / 0.72);
+  --card-foreground: oklch(0.97 0.01 90);
+  --popover: oklch(0.2 0.02 240);
+  --popover-foreground: oklch(0.97 0.01 90);
+  --primary: oklch(0.84 0.08 85);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.28 0.02 240);
+  --secondary-foreground: oklch(0.97 0.01 90);
+  --muted: oklch(0.3 0.02 240);
+  --muted-foreground: oklch(0.78 0.02 90);
+  --accent: oklch(0.32 0.03 240);
+  --accent-foreground: oklch(0.97 0.01 90);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
@@ -122,7 +122,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: #071018;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.28) 0%, rgba(6, 10, 16, 0.55) 100%),
+      url("/wallpaper.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
@@ -135,5 +142,19 @@
   a,
   [role="button"] {
     touch-action: manipulation;
+  }
+}
+
+.glass {
+  background: rgba(12, 18, 26, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: rgba(14, 20, 28, 0.92);
   }
 }

@@ -23,6 +23,7 @@ export function SettingsClient() {
   const [calendars, setCalendars] = useState<GoogleCalendarInfo[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [familyName, setFamilyName] = useState("");
+  const [homeName, setHomeName] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -36,6 +37,7 @@ export function SettingsClient() {
     setConfig(data);
     setPeople(data.people);
     setFamilyName(data.familyName);
+    setHomeName(data.homeName);
     setLatitude(String(data.weather.latitude));
     setLongitude(String(data.weather.longitude));
     setTimezone(data.weather.timezone);
@@ -92,6 +94,7 @@ export function SettingsClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         familyName,
+        homeName,
         people,
         weather: {
           latitude: Number(latitude),
@@ -146,7 +149,7 @@ export function SettingsClient() {
         <h1 className="text-3xl font-semibold">Settings</h1>
       </header>
 
-      <section className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+      <section className="glass space-y-3 rounded-2xl p-4">
         <h2 className="text-xl font-medium">Google Calendar</h2>
         {config.googleConnected ? (
           <p className="text-muted-foreground">
@@ -204,8 +207,12 @@ export function SettingsClient() {
         ))}
       </section>
 
-      <section className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+      <section className="glass space-y-3 rounded-2xl p-4">
         <h2 className="text-xl font-medium">Family and weather</h2>
+        <div className="space-y-2">
+          <Label htmlFor="home">Home name</Label>
+          <Input id="home" className="h-12 text-base" value={homeName} onChange={(e) => setHomeName(e.target.value)} />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="family">Family name</Label>
           <Input id="family" className="h-12 text-base" value={familyName} onChange={(e) => setFamilyName(e.target.value)} />
@@ -247,7 +254,7 @@ export function SettingsClient() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+      <section className="glass space-y-3 rounded-2xl p-4">
         <h2 className="text-xl font-medium">Mealie</h2>
         <p className="text-muted-foreground">
           {config.mealieConfigured

@@ -1,17 +1,35 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { contrastText } from "@/lib/color";
 import {
   dayNumber,
   eventTouchesDay,
   formatCompactTime,
-  monthLabel,
+  formatWeekRange,
+  hourInZone,
   weekdayShort,
 } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, Person } from "@/lib/types";
+
+const SLOTS = [8, 10, 12, 14, 16, 18, 20];
+
+function slotLabel(hour: number) {
+  if (hour === 0) return "12 AM";
+  if (hour === 12) return "12 PM";
+  if (hour < 12) return `${hour} AM`;
+  return `${hour - 12} PM`;
+}
+
+function slotForHour(hour: number) {
+  if (hour < SLOTS[0]) return SLOTS[0];
+  let match = SLOTS[0];
+  for (const slot of SLOTS) {
+    if (hour >= slot) match = slot;
+  }
+  return match;
+}
 
 export function WeekGrid({
   days,
@@ -24,6 +42,8 @@ export function WeekGrid({
   onAdd,
   onPrev,
   onNext,
+  onToday,
+  compact = false,
 }: {
   days: string[];
   today: string;
@@ -35,92 +55,198 @@ export function WeekGrid({
   onAdd: (day: string) => void;
   onPrev: () => void;
   onNext: () => void;
+  onToday?: () => void;
+  compact?: boolean;
 }) {
-  const weekLabel =
-    days[0] && days[6]
-      ? days[0].slice(0, 7) === days[6].slice(0, 7)
-        ? monthLabel(days[0], timeZone)
-        : `${monthLabel(days[0], timeZone).split(" ")[0]} – ${monthLabel(days[6], timeZone)}`
-      : "";
+  const rangeLabel = days[0] && days[6] ? formatWeekRange(days[0], days[6], timeZone) : "";
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-3 flex items-center gap-2">
-        <Button type="button" variant="secondary" size="icon-lg" className="size-12" onClick={onPrev}>
-          <ChevronLeft className="size-6" />
-        </Button>
-        <h2 className="flex-1 text-center text-xl font-medium">{weekLabel}</h2>
-        <Button type="button" variant="secondary" size="icon-lg" className="size-12" onClick={onNext}>
-          <ChevronRight className="size-6" />
-        </Button>
-      </div>
-      <div className="grid min-h-0 flex-1 grid-cols-7 gap-1.5 md:gap-2">
-        {days.map((day) => {
-          const isToday = day === today;
-          const dayEvents = events
-            .filter((event) =>
-              eventTouchesDay(event.startIso, event.endIso, event.allDay, day, timeZone),
-            )
-            .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.startIso.localeCompare(b.startIso));
-          return (
-            <div
-              key={day}
-              className={cn(
-                "flex min-h-0 flex-col rounded-2xl bg-card p-2 ring-1 ring-foreground/10",
-                isToday && "ring-2 ring-primary",
-              )}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">Family Calendar</h2>
+        <div className="ml-auto flex items-center gap-2">
+          {onToday && (
+            <button
+              type="button"
+              onClick={onToday}
+              className="h-9 rounded-lg bg-white/10 px-3 text-sm font-medium"
             >
-              <div className="flex w-full items-center justify-between rounded-xl px-1 py-1">
-                <button
-                  type="button"
-                  onClick={() => onDay(day)}
-                  className="text-left"
-                >
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {weekdayShort(day, timeZone)}
-                  </span>
-                  <span className={cn("text-2xl font-semibold", isToday && "text-primary")}>
-                    {dayNumber(day)}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-secondary"
-                  onClick={() => onAdd(day)}
-                  aria-label={`Add event on ${day}`}
-                >
-                  <Plus className="size-4" />
-                </button>
-              </div>
-              <div className="mt-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-                {dayEvents.length === 0 && (
-                  <p className="px-1 pt-2 text-xs text-muted-foreground">Tap to add</p>
-                )}
-                {dayEvents.map((event) => {
-                  const person =
-                    people.find((item) => item.calendarId === event.calendarId) || people[0];
-                  const color = person?.color || "#a3e635";
-                  return (
-                    <button
-                      key={`${event.calendarId}:${event.id}:${day}`}
-                      type="button"
-                      onClick={() => onEvent(event)}
-                      className="rounded-xl px-2 py-1.5 text-left text-sm leading-tight"
-                      style={{ backgroundColor: color, color: contrastText(color) }}
-                    >
-                      <span className="block font-medium">{event.title}</span>
-                      <span className="block text-[0.7rem] opacity-80">
-                        {event.allDay ? "All day" : formatCompactTime(event.startIso, timeZone)}
-                        {person ? ` · ${person.name}` : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+              Today
+            </button>
+          )}
+          <button type="button" className="flex size-9 items-center justify-center rounded-lg bg-white/10" onClick={onPrev}>
+            <ChevronLeft className="size-5" />
+          </button>
+          <button type="button" className="flex size-9 items-center justify-center rounded-lg bg-white/10" onClick={onNext}>
+            <ChevronRight className="size-5" />
+          </button>
+          <span className="min-w-[11rem] rounded-lg bg-white/10 px-3 py-2 text-center text-sm">
+            {rangeLabel}
+          </span>
+        </div>
       </div>
-    </section>
+      <div className={cn("min-h-0 flex-1 overflow-auto", compact && "text-[0.9rem]")}>
+        <div
+          className="grid min-h-full"
+          style={{
+            gridTemplateColumns: `3.2rem repeat(${days.length}, minmax(0, 1fr))`,
+            gridTemplateRows: `auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.6rem" : "3.1rem"}, 1fr))`,
+          }}
+        >
+          <div />
+          {days.map((day) => {
+            const isToday = day === today;
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => onDay(day)}
+                className={cn("pb-2 text-center", isToday && "text-white")}
+              >
+                <span className="block text-xs font-medium uppercase tracking-wide text-white/55">
+                  {weekdayShort(day, timeZone)}
+                </span>
+                <span
+                  className={cn(
+                    "mt-1 inline-flex size-8 items-center justify-center rounded-full text-sm font-semibold",
+                    isToday && "bg-white text-zinc-900",
+                  )}
+                >
+                  {dayNumber(day)}
+                </span>
+              </button>
+            );
+          })}
+
+          <div className="pr-2 pt-1 text-right text-[0.65rem] font-medium uppercase tracking-wide text-white/45">
+            All day
+          </div>
+          {days.map((day) => {
+            const allDay = events.filter(
+              (event) =>
+                event.allDay && eventTouchesDay(event.startIso, event.endIso, true, day, timeZone),
+            );
+            return (
+              <div
+                key={`all-${day}`}
+                className="min-h-10 border-t border-white/8 px-1 py-1"
+                onDoubleClick={() => onAdd(day)}
+              >
+                <div className="flex flex-col gap-1">
+                  {allDay.map((event) => (
+                    <EventChip
+                      key={`${event.calendarId}:${event.id}`}
+                      event={event}
+                      people={people}
+                      timeZone={timeZone}
+                      onEvent={onEvent}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {SLOTS.map((slot) => (
+            <TimeRow
+              key={slot}
+              slot={slot}
+              days={days}
+              events={events}
+              people={people}
+              timeZone={timeZone}
+              onAdd={onAdd}
+              onEvent={onEvent}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimeRow({
+  slot,
+  days,
+  events,
+  people,
+  timeZone,
+  onAdd,
+  onEvent,
+}: {
+  slot: number;
+  days: string[];
+  events: CalendarEvent[];
+  people: Person[];
+  timeZone: string;
+  onAdd: (day: string) => void;
+  onEvent: (event: CalendarEvent) => void;
+}) {
+  return (
+    <>
+      <div className="pr-2 pt-1 text-right text-[0.7rem] text-white/45">{slotLabel(slot)}</div>
+      {days.map((day) => {
+        const slotEvents = events.filter((event) => {
+          if (event.allDay) return false;
+          if (!eventTouchesDay(event.startIso, event.endIso, false, day, timeZone)) return false;
+          return slotForHour(hourInZone(event.startIso, timeZone)) === slot;
+        });
+        return (
+          <button
+            key={`${day}-${slot}`}
+            type="button"
+            className="border-t border-white/8 px-1 py-1 text-left"
+            onClick={() => onAdd(day)}
+          >
+            <div className="flex flex-col gap-1">
+              {slotEvents.map((event) => (
+                <EventChip
+                  key={`${event.calendarId}:${event.id}`}
+                  event={event}
+                  people={people}
+                  timeZone={timeZone}
+                  onEvent={onEvent}
+                />
+              ))}
+            </div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function EventChip({
+  event,
+  people,
+  timeZone,
+  onEvent,
+}: {
+  event: CalendarEvent;
+  people: Person[];
+  timeZone: string;
+  onEvent: (event: CalendarEvent) => void;
+}) {
+  const person = people.find((item) => item.calendarId === event.calendarId) || people[0];
+  const color = person?.color || "#3B6FDB";
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(click) => {
+        click.stopPropagation();
+        onEvent(event);
+      }}
+      onKeyDown={(key) => {
+        if (key.key === "Enter") onEvent(event);
+      }}
+      className="block rounded-lg px-2 py-1 leading-tight"
+      style={{ backgroundColor: color, color: contrastText(color) }}
+    >
+      <span className="block truncate text-[0.78rem] font-semibold">{event.title}</span>
+      {!event.allDay && (
+        <span className="block text-[0.65rem] opacity-85">{formatCompactTime(event.startIso, timeZone)}</span>
+      )}
+    </span>
   );
 }

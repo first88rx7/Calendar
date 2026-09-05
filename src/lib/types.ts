@@ -35,6 +35,12 @@ export type WeatherDay = {
   precipitationProbability: number;
 };
 
+export type WeatherHour = {
+  time: string;
+  temperature: number;
+  weatherCode: number;
+};
+
 export type WeatherNow = {
   temperature: number;
   weatherCode: number;
@@ -46,6 +52,7 @@ export type WeatherNow = {
 export type WeatherPayload = {
   current: WeatherNow;
   daily: WeatherDay[];
+  hourly?: WeatherHour[];
   timezone: string;
   unit: "fahrenheit" | "celsius";
 };
@@ -61,6 +68,7 @@ export type SyncStatus = {
 
 export type AppConfig = {
   familyName: string;
+  homeName: string;
   weekStartsOn: 0 | 1;
   idleTimeoutMs: number;
   nightClockStart: string;
@@ -95,6 +103,7 @@ export type RecipeSummary = {
   description?: string;
   imageUrl?: string;
   totalTime?: string;
+  rating?: number;
 };
 
 export type RecipeDetail = RecipeSummary & {
@@ -108,6 +117,7 @@ export type DashboardPayload = {
   config: PublicConfig;
   events: CalendarEvent[];
   meals: MealEntry[];
+  recipes: RecipeSummary[];
   weather: WeatherPayload | null;
   status: SyncStatus[];
   range: { from: string; to: string };

@@ -69,16 +69,21 @@ export function RecipesClient() {
   const empty = recipes && recipes.length === 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Mealie</p>
           <h1 className="text-3xl font-semibold">Recipes</h1>
         </div>
+        <div className="flex items-center gap-3">
+        <Link href="/meals" className="text-sm text-white/70 hover:text-white">
+          Meal plan
+        </Link>
         <Link href="/mealie" className={buttonVariants({ className: "h-12 px-4 text-base" })}>
           Open Mealie
           <ExternalLink className="size-4" />
         </Link>
+        </div>
       </header>
       <form
         className="flex gap-2"

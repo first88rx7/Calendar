@@ -44,7 +44,7 @@ export default function MealsPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Next seven days</p>
@@ -67,7 +67,7 @@ export default function MealsPage() {
           return (
             <section
               key={day}
-              className={`flex flex-col rounded-2xl bg-card p-4 ring-1 ring-foreground/10 ${isToday ? "ring-2 ring-primary" : ""}`}
+              className={`glass flex flex-col p-4 ${isToday ? "ring-2 ring-white/40" : ""}`}
             >
               <h2 className="text-lg font-medium">
                 {day === today

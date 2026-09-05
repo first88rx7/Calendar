@@ -40,6 +40,11 @@ yarn-error.log*
 /data/*.db-*
 /data/config.json
 
+# junk
+/agent-tools/
+AGENTS.md
+CLAUDE.md
+
 
 # vercel
 .vercel

@@ -26,14 +26,18 @@ docker compose up --build -d
 
 The dashboard listens on port **3847**. Point a browser at `http://<server-ip>:3847`.
 
-Without Docker (LXC: give the CT **2048 MB RAM** and **1024 MB swap** — `next build` OOMs on 1 GB):
+Without Docker, on a **2 GB / 4 GB swap** LXC. Do not run a full `next build` on 1 GB — typecheck + webpack together will OOM. After `git pull`:
 
 ```bash
-npm install
-cp .env.example .env
-npm run dev    # http://0.0.0.0:43123
-# or
-npm run build && npm start   # http://0.0.0.0:3847
+chmod +x deploy/lxc-setup.sh
+./deploy/lxc-setup.sh
+npm start   # http://0.0.0.0:3847
+```
+
+That script installs packages, then compiles with `npm run build:lxc` (skips TypeScript, one webpack worker, 1 GB heap). Raise swap on the Proxmox host if it still dies:
+
+```bash
+pct set <CTID> --memory 2048 --swap 4096
 ```
 
 ## Google Calendar (two-way)

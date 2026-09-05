@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicConfig, readConfig, writeConfig } from "@/lib/config";
+import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import { settingsUnlocked } from "@/lib/settings-auth";
 import type { AppConfig } from "@/lib/types";
 
@@ -47,6 +48,8 @@ export async function PUT(request: NextRequest) {
   if (patch.photoRotateSec !== undefined) {
     next.photoRotateSec = Math.min(600, Math.max(10, Number(patch.photoRotateSec) || 45));
   }
+  next.photoPrism.url = normalizePhotoPrismUrl(next.photoPrism.url);
+  next.photoPrism.albumUid = extractAlbumUid(next.photoPrism.albumUid);
   writeConfig(next);
   const { invalidatePhotoCache } = await import("@/lib/photoprism");
   invalidatePhotoCache();

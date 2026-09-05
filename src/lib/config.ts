@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { getConfigPath } from "@/lib/paths";
 import { isGoogleConfigured, readOAuth } from "@/lib/google-store";
+import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import type { AppConfig, PhotoPrismConfig, PublicConfig } from "@/lib/types";
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -118,7 +119,8 @@ export function readConfig(): AppConfig {
   merged.sleepDimPercent = clamp(merged.sleepDimPercent, 40, 95);
   merged.photoRotateSec = clamp(merged.photoRotateSec, 10, 600);
   if (merged.idleTimeoutMs < 0) merged.idleTimeoutMs = 0;
-  merged.photoPrism.url = stripSlash(merged.photoPrism.url);
+  merged.photoPrism.url = normalizePhotoPrismUrl(merged.photoPrism.url);
+  merged.photoPrism.albumUid = extractAlbumUid(merged.photoPrism.albumUid);
 
   return merged;
 }
@@ -138,10 +140,10 @@ export function mealieConfigured() {
 export function photoPrismSettings(): PhotoPrismConfig & { token: string } {
   const config = readConfig();
   return {
-    url: stripSlash(process.env.PHOTOPRISM_URL || config.photoPrism.url || ""),
+    url: normalizePhotoPrismUrl(process.env.PHOTOPRISM_URL || config.photoPrism.url || ""),
     username: process.env.PHOTOPRISM_USER || config.photoPrism.username || "",
     password: process.env.PHOTOPRISM_PASSWORD || config.photoPrism.password || "",
-    albumUid: process.env.PHOTOPRISM_ALBUM || config.photoPrism.albumUid || "",
+    albumUid: extractAlbumUid(process.env.PHOTOPRISM_ALBUM || config.photoPrism.albumUid || ""),
     query: process.env.PHOTOPRISM_QUERY || config.photoPrism.query || "",
     token: process.env.PHOTOPRISM_TOKEN || "",
   };

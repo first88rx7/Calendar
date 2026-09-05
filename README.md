@@ -96,7 +96,8 @@ The wall can cycle random photos from a PhotoPrism library behind the glass card
 PHOTOPRISM_URL=http://192.168.1.10:2342
 PHOTOPRISM_USER=admin
 PHOTOPRISM_PASSWORD=...
-# optional: limit to one album (UID from the PhotoPrism album URL)
+# optional: limit to one album or folder. Use the UID from the PhotoPrism URL
+# (/library/albums/<uid>/view), not the full URL. Settings can also paste the URL.
 PHOTOPRISM_ALBUM=
 # optional: PhotoPrism search filters, e.g. favorite:true
 PHOTOPRISM_QUERY=

@@ -1,9 +1,13 @@
 import { photoPrismSettings } from "@/lib/config";
+import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import { setSyncState } from "@/lib/sync-state";
 import type { SlideshowPhoto } from "@/lib/types";
 
+export { extractAlbumUid, normalizePhotoPrismUrl };
+
 const PHOTO_HASH = /^[a-fA-F0-9]{32,64}$/;
-const PREVIEW_SIZES = new Set(["fit_1280", "fit_1920", "fit_2560", "tile_500"]);
+const PREVIEW_SIZES = ["fit_1920", "fit_1280", "fit_2560", "tile_500"] as const;
+const PREVIEW_SIZE_SET = new Set<string>(PREVIEW_SIZES);
 
 type SessionCache = {
   token: string;
@@ -31,26 +35,48 @@ function isHash(value: string) {
 }
 
 export function previewSize(value?: string | null) {
-  if (value && PREVIEW_SIZES.has(value)) return value;
+  if (value && PREVIEW_SIZE_SET.has(value)) return value;
   return "fit_1920";
+}
+
+function resolvedSettings() {
+  const settings = photoPrismSettings();
+  return {
+    ...settings,
+    url: normalizePhotoPrismUrl(settings.url),
+    albumUid: extractAlbumUid(settings.albumUid),
+  };
+}
+
+async function readErrorDetail(response: Response) {
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text) as { error?: string; message?: string };
+    return data.error || data.message || text.slice(0, 180);
+  } catch {
+    return text.slice(0, 180);
+  }
 }
 
 async function photoprismFetch(
   path: string,
-  init: RequestInit & { token?: string } = {},
+  init: RequestInit & { token?: string; acceptJson?: boolean } = {},
 ) {
-  const settings = photoPrismSettings();
+  const settings = resolvedSettings();
   if (!settings.url) {
     throw new Error("PhotoPrism URL is not set");
   }
   const headers = new Headers(init.headers);
-  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  if (init.acceptJson !== false && !headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
   if (init.token) {
     headers.set("Authorization", `Bearer ${init.token}`);
     headers.set("X-Auth-Token", init.token);
   }
   const rest = { ...init };
   delete rest.token;
+  delete rest.acceptJson;
   return fetch(`${settings.url}${path}`, {
     ...rest,
     headers,
@@ -60,7 +86,7 @@ async function photoprismFetch(
 }
 
 async function createSession() {
-  const settings = photoPrismSettings();
+  const settings = resolvedSettings();
   if (settings.token) {
     return { token: settings.token, previewToken: "" };
   }
@@ -76,7 +102,8 @@ async function createSession() {
     }),
   });
   if (!response.ok) {
-    throw new Error(`PhotoPrism sign-in failed (${response.status})`);
+    const detail = await readErrorDetail(response);
+    throw new Error(`PhotoPrism sign-in failed (${response.status}${detail ? `: ${detail}` : ""})`);
   }
   const data = (await response.json()) as {
     id?: string;
@@ -119,44 +146,67 @@ function photoType(photo: PhotoPrismPhoto) {
   return (photo.Type || photo.type || "image").toLowerCase();
 }
 
-async function searchPhotos(session: SessionCache) {
-  const settings = photoPrismSettings();
-  const params = new URLSearchParams({
-    count: "80",
-    offset: "0",
-    order: "random",
-    primary: "true",
-    quality: "3",
-    public: "true",
-  });
-  const query = [settings.query.trim(), "type:image"].filter(Boolean).join(" ");
-  if (query) params.set("q", query);
-  if (settings.albumUid.trim()) params.set("s", settings.albumUid.trim());
+function photoSearchAttempts() {
+  const settings = resolvedSettings();
+  const album = settings.albumUid;
+  const query = settings.query.trim();
+  const attempts: URLSearchParams[] = [];
 
-  const response = await photoprismFetch(`/api/v1/photos?${params}`, {
-    token: session.token || undefined,
-  });
-  if (response.status === 401 && session.token) {
-    sessionCache = null;
-    const retrySession = await getSession(true);
-    const retry = await photoprismFetch(`/api/v1/photos?${params}`, {
-      token: retrySession.token || undefined,
+  const make = (extra: Record<string, string>) => {
+    const params = new URLSearchParams({
+      count: "80",
+      offset: "0",
+      order: "random",
+      merged: "true",
+      ...extra,
     });
-    if (!retry.ok) {
-      throw new Error(`PhotoPrism photos failed (${retry.status})`);
-    }
-    return {
-      photos: await parsePhotoList(retry),
-      previewToken: retry.headers.get("X-Preview-Token") || retrySession.previewToken,
-    };
-  }
-  if (!response.ok) {
-    throw new Error(`PhotoPrism photos failed (${response.status})`);
-  }
-  return {
-    photos: await parsePhotoList(response),
-    previewToken: response.headers.get("X-Preview-Token") || session.previewToken,
+    attempts.push(params);
   };
+
+  // Folder albums store a path filter. Extra q=type:image on top of s=<uid>
+  // makes PhotoPrism return 400 ("unable to do that" / bad filter).
+  if (album && query) {
+    make({ s: album, q: query });
+    make({ q: `${query} album:${album}` });
+  } else if (album) {
+    make({ s: album });
+    make({ album });
+    make({ q: `album:${album}` });
+  } else if (query) {
+    make({ q: query });
+  } else {
+    make({});
+    make({ q: "type:image" });
+  }
+
+  return attempts;
+}
+
+async function searchPhotos(session: SessionCache) {
+  let lastMessage = "PhotoPrism photos failed";
+  for (const params of photoSearchAttempts()) {
+    const path = `/api/v1/photos?${params}`;
+    let response = await photoprismFetch(path, { token: session.token || undefined });
+    if (response.status === 401 && session.token) {
+      sessionCache = null;
+      const retrySession = await getSession(true);
+      session.token = retrySession.token;
+      session.previewToken = retrySession.previewToken || session.previewToken;
+      response = await photoprismFetch(path, { token: retrySession.token || undefined });
+    }
+    if (response.ok) {
+      return {
+        photos: await parsePhotoList(response),
+        previewToken: response.headers.get("X-Preview-Token") || session.previewToken,
+      };
+    }
+    const detail = await readErrorDetail(response);
+    lastMessage = `PhotoPrism photos failed (${response.status}${detail ? `: ${detail}` : ""})`;
+    if (response.status !== 400 && response.status !== 404) {
+      throw new Error(lastMessage);
+    }
+  }
+  throw new Error(lastMessage);
 }
 
 async function parsePhotoList(response: Response) {
@@ -175,7 +225,7 @@ function shuffle<T>(items: T[]) {
 }
 
 export async function listSlideshowPhotos(force = false) {
-  const settings = photoPrismSettings();
+  const settings = resolvedSettings();
   if (!settings.url) {
     return { configured: false as const, photos: [] as SlideshowPhoto[] };
   }
@@ -198,7 +248,7 @@ export async function listSlideshowPhotos(force = false) {
         if (!hash) return null;
         return {
           hash,
-          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_2560`,
+          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_1920`,
           thumbSrc: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=tile_500`,
           title: photo.Title || photo.title || "",
         } satisfies SlideshowPhoto;
@@ -223,8 +273,7 @@ export async function fetchPhotoBytes(hash: string, size = "fit_1920") {
   if (!isHash(hash)) {
     throw new Error("Bad photo hash");
   }
-  const safeSize = previewSize(size);
-  const settings = photoPrismSettings();
+  const settings = resolvedSettings();
   if (!settings.url) {
     throw new Error("PhotoPrism URL is not set");
   }
@@ -237,24 +286,41 @@ export async function fetchPhotoBytes(hash: string, size = "fit_1920") {
     }
     previewToken = sessionCache?.previewToken || "public";
   }
-  const path = `/api/v1/t/${hash}/${previewToken}/${safeSize}`;
-  let response = await photoprismFetch(path, { token: session.token || undefined });
-  if (response.status === 401 && session.token) {
-    sessionCache = null;
-    listCache = null;
-    const retrySession = await getSession(true);
-    previewToken = retrySession.previewToken || previewToken;
-    response = await photoprismFetch(`/api/v1/t/${hash}/${previewToken}/${safeSize}`, {
-      token: retrySession.token || undefined,
+
+  const sizes = [previewSize(size), "fit_1920", "fit_1280"].filter(
+    (item, index, all) => all.indexOf(item) === index,
+  );
+  let lastStatus = 0;
+  let lastDetail = "";
+  for (const candidate of sizes) {
+    const path = `/api/v1/t/${hash}/${previewToken}/${candidate}`;
+    let response = await photoprismFetch(path, {
+      token: session.token || undefined,
+      acceptJson: false,
     });
+    if (response.status === 401 && session.token) {
+      sessionCache = null;
+      listCache = null;
+      const retrySession = await getSession(true);
+      previewToken = retrySession.previewToken || previewToken;
+      response = await photoprismFetch(`/api/v1/t/${hash}/${previewToken}/${candidate}`, {
+        token: retrySession.token || undefined,
+        acceptJson: false,
+      });
+    }
+    if (response.ok) {
+      return {
+        buffer: await response.arrayBuffer(),
+        contentType: response.headers.get("content-type") || "image/jpeg",
+      };
+    }
+    lastStatus = response.status;
+    lastDetail = await readErrorDetail(response);
+    if (response.status !== 400 && response.status !== 404) break;
   }
-  if (!response.ok) {
-    throw new Error(`Photo fetch failed (${response.status})`);
-  }
-  return {
-    buffer: await response.arrayBuffer(),
-    contentType: response.headers.get("content-type") || "image/jpeg",
-  };
+  throw new Error(
+    `Photo fetch failed (${lastStatus}${lastDetail ? `: ${lastDetail}` : ""})`,
+  );
 }
 
 export function invalidatePhotoCache() {

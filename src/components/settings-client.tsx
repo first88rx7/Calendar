@@ -216,7 +216,7 @@ export function SettingsClient() {
   async function testPhotos() {
     setTestingPhotos(true);
     try {
-      const response = await fetch("/api/photos/slideshow", { cache: "no-store" });
+      const response = await fetch("/api/photos/slideshow?force=1", { cache: "no-store" });
       const data = (await response.json()) as SlideshowPayload;
       if (!data.configured) {
         toast.error("Save a PhotoPrism URL first.");
@@ -547,10 +547,15 @@ export function SettingsClient() {
           <Input
             id="pp-album"
             className="h-12 text-base"
-            placeholder="From the album URL in PhotoPrism"
+            placeholder="atkwzfah1bh8tz5w"
             value={photoAlbum}
             onChange={(event) => setPhotoAlbum(event.target.value)}
           />
+          <p className="text-sm text-muted-foreground">
+            Use the id from the PhotoPrism album URL, for example{" "}
+            <span className="text-foreground">atkwzfah1bh8tz5w</span> in
+            /library/albums/atkwzfah1bh8tz5w/view. A full URL is also accepted.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="pp-query">Search filter (optional)</Label>

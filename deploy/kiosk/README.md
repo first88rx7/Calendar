@@ -56,17 +56,15 @@ ssh <user>@kitchen-pi.local
 
 If `.local` does not resolve, use the Pi's IP from the router.
 
-On the Pi, install git and clone the household repo (public HTTPS is the easy path):
+On the Pi, install git and clone [first88rx7/Calendar](https://github.com/first88rx7/Calendar) (public HTTPS is the easy path):
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-git clone https://github.com/<you>/household.git
-cd household/deploy/kiosk
+git clone https://github.com/first88rx7/Calendar.git
+cd Calendar/deploy/kiosk
 chmod +x install.sh kiosk.sh
 ```
-
-Replace the URL with whatever GitHub (or GitLab) shows after you create the repository.
 
 If the repo is **private**, either clone with a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) when git asks for a password, or add an SSH deploy key:
 
@@ -74,8 +72,8 @@ If the repo is **private**, either clone with a [personal access token](https://
 ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub
 # paste that public key as a read-only deploy key on the repo, then:
-git clone git@github.com:<you>/household.git
-cd household/deploy/kiosk
+git clone git@github.com:first88rx7/Calendar.git
+cd Calendar/deploy/kiosk
 ```
 
 ## 3. Point it at the dashboard and reboot

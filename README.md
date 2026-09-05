@@ -94,10 +94,11 @@ Do not run this Node app on the 512MB board. The Pi only opens a fullscreen brow
 
 **OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub. SSH in and `git clone` this repo — you do not need to copy files from Windows.
 
-Step-by-step (Imager settings, wiring, `scp`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
+Step-by-step (Imager settings, wiring, `git clone`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
 
 ```bash
-# on the Pi, after: git clone <this-repo> && cd household/deploy/kiosk
+# on the Pi, after: git clone https://github.com/first88rx7/Calendar.git
+cd Calendar/deploy/kiosk
 HOUSEHOLD_URL=http://<home-server-ip>:3847 ./install.sh
 sudo reboot
 ```

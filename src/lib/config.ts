@@ -66,55 +66,75 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function readConfig(): AppConfig {
-  const path = getConfigPath();
-  let fileConfig: Partial<AppConfig> = {};
-  if (fs.existsSync(path)) {
-    try {
-      fileConfig = JSON.parse(fs.readFileSync(path, "utf8")) as Partial<AppConfig>;
-    } catch {
-      fileConfig = {};
-    }
-  }
-  const merged = deepMerge(
-    DEFAULT_CONFIG as unknown as Record<string, unknown>,
-    fileConfig as Record<string, unknown>,
-  ) as unknown as AppConfig;
+function envRuntime(name: string) {
+  return process.env[name];
+}
 
-  if (process.env.FAMILY_NAME) merged.familyName = process.env.FAMILY_NAME;
-  if (process.env.HOME_NAME) merged.homeName = process.env.HOME_NAME;
-  // WEATHER_* in .env is first-boot only. systemd EnvironmentFile would otherwise
-  // pin Seattle (or whatever was in .env) on every read, so a ZIP saved in
-  // Settings never reached the kitchen widget.
-  if (!fileHasWeather(fileConfig)) {
-    if (process.env.WEATHER_LAT) merged.weather.latitude = Number(process.env.WEATHER_LAT);
-    if (process.env.WEATHER_LON) merged.weather.longitude = Number(process.env.WEATHER_LON);
-    if (process.env.WEATHER_TIMEZONE) merged.weather.timezone = process.env.WEATHER_TIMEZONE;
-    if (process.env.WEATHER_UNIT === "celsius" || process.env.WEATHER_UNIT === "fahrenheit") {
-      merged.weather.temperatureUnit = process.env.WEATHER_UNIT;
-    }
-    if (process.env.WEATHER_LABEL) merged.weather.locationLabel = process.env.WEATHER_LABEL;
+function readFileConfig(): Partial<AppConfig> {
+  const path = getConfigPath();
+  if (!fs.existsSync(path)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(path, "utf8")) as Partial<AppConfig>;
+  } catch {
+    return {};
   }
-  if (process.env.MEALIE_URL) merged.mealie.publicUrl = process.env.MEALIE_URL;
-  if (process.env.MEALIE_GROUP_SLUG) merged.mealie.groupSlug = process.env.MEALIE_GROUP_SLUG;
-  if (process.env.WEEK_STARTS_ON === "1" || process.env.WEEK_STARTS_ON === "0") {
-    merged.weekStartsOn = Number(process.env.WEEK_STARTS_ON) as 0 | 1;
+}
+
+/** Defaults + config.json only. systemd WEATHER_* must not win over Settings. */
+export function readStoredConfig(): AppConfig {
+  return deepMerge(
+    DEFAULT_CONFIG as unknown as Record<string, unknown>,
+    readFileConfig() as Record<string, unknown>,
+  ) as unknown as AppConfig;
+}
+
+export function readConfig(): AppConfig {
+  const fileConfig = readFileConfig();
+  const merged = readStoredConfig();
+  const hasFile = fs.existsSync(getConfigPath());
+
+  if (envRuntime("FAMILY_NAME")) merged.familyName = envRuntime("FAMILY_NAME")!;
+  if (envRuntime("HOME_NAME")) merged.homeName = envRuntime("HOME_NAME")!;
+  // Weather comes from Settings / config.json. Do not apply WEATHER_* from
+  // EnvironmentFile — Next also inlines process.env.WEATHER_* at build time,
+  // which pinned Seattle even after a ZIP save.
+  if (!hasFile) {
+    const lat = envRuntime("WEATHER_LAT");
+    const lon = envRuntime("WEATHER_LON");
+    const tz = envRuntime("WEATHER_TIMEZONE");
+    const unit = envRuntime("WEATHER_UNIT");
+    const label = envRuntime("WEATHER_LABEL");
+    if (lat) merged.weather.latitude = Number(lat);
+    if (lon) merged.weather.longitude = Number(lon);
+    if (tz) merged.weather.timezone = tz;
+    if (unit === "celsius" || unit === "fahrenheit") merged.weather.temperatureUnit = unit;
+    if (label) merged.weather.locationLabel = label;
+  } else if (fileConfig.weather && typeof fileConfig.weather === "object") {
+    merged.weather = {
+      ...merged.weather,
+      ...fileConfig.weather,
+    };
   }
-  if (process.env.IDLE_TIMEOUT_MS) merged.idleTimeoutMs = Number(process.env.IDLE_TIMEOUT_MS);
-  if (process.env.SLEEP_DIM_PERCENT) {
-    merged.sleepDimPercent = clamp(Number(process.env.SLEEP_DIM_PERCENT), 40, 95);
+  if (envRuntime("MEALIE_URL")) merged.mealie.publicUrl = envRuntime("MEALIE_URL")!;
+  if (envRuntime("MEALIE_GROUP_SLUG")) merged.mealie.groupSlug = envRuntime("MEALIE_GROUP_SLUG")!;
+  if (envRuntime("WEEK_STARTS_ON") === "1" || envRuntime("WEEK_STARTS_ON") === "0") {
+    merged.weekStartsOn = Number(envRuntime("WEEK_STARTS_ON")) as 0 | 1;
   }
-  if (process.env.SLEEP_SHOW_CLOCK === "0" || process.env.SLEEP_SHOW_CLOCK === "false") {
+  if (envRuntime("IDLE_TIMEOUT_MS")) merged.idleTimeoutMs = Number(envRuntime("IDLE_TIMEOUT_MS"));
+  if (envRuntime("SLEEP_DIM_PERCENT")) {
+    merged.sleepDimPercent = clamp(Number(envRuntime("SLEEP_DIM_PERCENT")), 40, 95);
+  }
+  if (envRuntime("SLEEP_SHOW_CLOCK") === "0" || envRuntime("SLEEP_SHOW_CLOCK") === "false") {
     merged.sleepShowClock = false;
   }
-  if (process.env.PHOTO_ROTATE_SEC) {
-    merged.photoRotateSec = clamp(Number(process.env.PHOTO_ROTATE_SEC), 10, 600);
+  if (envRuntime("PHOTO_ROTATE_SEC")) {
+    merged.photoRotateSec = clamp(Number(envRuntime("PHOTO_ROTATE_SEC")), 10, 600);
   }
-  if (process.env.PHOTOPRISM_URL) merged.photoPrism.url = process.env.PHOTOPRISM_URL;
-  if (process.env.PHOTOPRISM_USER) merged.photoPrism.username = process.env.PHOTOPRISM_USER;
-  if (process.env.PHOTOPRISM_PASSWORD) merged.photoPrism.password = process.env.PHOTOPRISM_PASSWORD;
-  if (process.env.PHOTOPRISM_ALBUM) merged.photoPrism.albumUid = process.env.PHOTOPRISM_ALBUM;
-  if (process.env.PHOTOPRISM_QUERY) merged.photoPrism.query = process.env.PHOTOPRISM_QUERY;
+  if (envRuntime("PHOTOPRISM_URL")) merged.photoPrism.url = envRuntime("PHOTOPRISM_URL")!;
+  if (envRuntime("PHOTOPRISM_USER")) merged.photoPrism.username = envRuntime("PHOTOPRISM_USER")!;
+  if (envRuntime("PHOTOPRISM_PASSWORD")) merged.photoPrism.password = envRuntime("PHOTOPRISM_PASSWORD")!;
+  if (envRuntime("PHOTOPRISM_ALBUM")) merged.photoPrism.albumUid = envRuntime("PHOTOPRISM_ALBUM")!;
+  if (envRuntime("PHOTOPRISM_QUERY")) merged.photoPrism.query = envRuntime("PHOTOPRISM_QUERY")!;
 
   merged.sleepDimPercent = clamp(merged.sleepDimPercent, 40, 95);
   merged.photoRotateSec = clamp(merged.photoRotateSec, 10, 600);
@@ -213,17 +233,6 @@ export function personForCalendar(calendarId: string, people = readConfig().peop
 
 export function mockCalendarId(personId: string) {
   return `mock:${personId}`;
-}
-
-function fileHasWeather(fileConfig: Partial<AppConfig>) {
-  const weather = fileConfig.weather;
-  if (!weather || typeof weather !== "object") return false;
-  return (
-    weather.latitude != null ||
-    weather.longitude != null ||
-    Boolean(weather.timezone) ||
-    Boolean(weather.locationLabel)
-  );
 }
 
 function stripSlash(value: string) {

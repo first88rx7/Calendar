@@ -26,6 +26,11 @@ if [[ ! -f .env ]]; then
   cp .env.example .env
   echo "Edit ${ROOT}/.env before you rely on Google / Mealie / PhotoPrism."
 fi
+# systemd EnvironmentFile=.env used to pin Seattle and undo Settings ZIP saves.
+if grep -qE '^WEATHER_' .env 2>/dev/null; then
+  sed -i.bak -E 's/^WEATHER_/# WEATHER_/' .env
+  echo "Commented WEATHER_* in .env so the forecast follows Settings."
+fi
 
 step "4/5 production compile (one webpack process, no typecheck)"
 rm -rf .next

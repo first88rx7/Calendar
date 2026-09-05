@@ -152,7 +152,13 @@ export function SettingsClient() {
       toast.error("Could not save settings");
       return;
     }
-    toast.success("Settings saved");
+    const saved = (await response.json()) as PublicConfig;
+    toast.success(`Settings saved · weather ${saved.weather.locationLabel}`);
+    setLatitude(String(saved.weather.latitude));
+    setLongitude(String(saved.weather.longitude));
+    setTimezone(saved.weather.timezone);
+    setLocationLabel(saved.weather.locationLabel);
+    setUnit(saved.weather.temperatureUnit);
     await loadConfig();
   }
 
@@ -192,7 +198,12 @@ export function SettingsClient() {
         toast.success(`Filled ${data.locationLabel}. Save settings to update the board.`);
         return;
       }
-      toast.success(`Weather is now ${data.locationLabel}`);
+      const saved = (await persist.json()) as PublicConfig;
+      setLatitude(String(saved.weather.latitude));
+      setLongitude(String(saved.weather.longitude));
+      setTimezone(saved.weather.timezone);
+      setLocationLabel(saved.weather.locationLabel);
+      toast.success(`Weather is now ${saved.weather.locationLabel}`);
     } catch {
       toast.error("ZIP lookup failed");
     } finally {

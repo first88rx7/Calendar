@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPublicConfig, readConfig, writeConfig } from "@/lib/config";
+import { getPublicConfig, readStoredConfig, writeConfig } from "@/lib/config";
 import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import { settingsUnlocked } from "@/lib/settings-auth";
 import type { AppConfig } from "@/lib/types";
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
   const patch = (await request.json()) as Partial<AppConfig> & {
     photoPrism?: Partial<AppConfig["photoPrism"]> & { password?: string };
   };
-  const current = readConfig();
+  const current = readStoredConfig();
   const incomingPassword = patch.photoPrism?.password?.trim();
   const next: AppConfig = {
     ...current,
@@ -47,6 +47,22 @@ export async function PUT(request: NextRequest) {
   }
   if (patch.photoRotateSec !== undefined) {
     next.photoRotateSec = Math.min(600, Math.max(10, Number(patch.photoRotateSec) || 45));
+  }
+  if (patch.weather) {
+    const latitude = Number(patch.weather.latitude);
+    const longitude = Number(patch.weather.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return NextResponse.json({ error: "Weather coordinates are invalid" }, { status: 400 });
+    }
+    next.weather = {
+      ...next.weather,
+      ...patch.weather,
+      latitude,
+      longitude,
+      timezone: String(patch.weather.timezone || next.weather.timezone),
+      locationLabel: String(patch.weather.locationLabel || next.weather.locationLabel),
+      temperatureUnit: patch.weather.temperatureUnit === "celsius" ? "celsius" : "fahrenheit",
+    };
   }
   next.photoPrism.url = normalizePhotoPrismUrl(next.photoPrism.url);
   next.photoPrism.albumUid = extractAlbumUid(next.photoPrism.albumUid);

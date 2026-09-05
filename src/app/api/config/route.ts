@@ -18,8 +18,11 @@ export async function PUT(request: NextRequest) {
   if (!(await settingsUnlocked())) {
     return NextResponse.json({ error: "Settings are locked" }, { status: 401 });
   }
-  const patch = (await request.json()) as Partial<AppConfig>;
+  const patch = (await request.json()) as Partial<AppConfig> & {
+    photoPrism?: Partial<AppConfig["photoPrism"]> & { password?: string };
+  };
   const current = readConfig();
+  const incomingPassword = patch.photoPrism?.password?.trim();
   const next: AppConfig = {
     ...current,
     ...patch,
@@ -29,7 +32,23 @@ export async function PUT(request: NextRequest) {
     })),
     weather: { ...current.weather, ...(patch.weather || {}) },
     mealie: { ...current.mealie, ...(patch.mealie || {}) },
+    photoPrism: {
+      ...current.photoPrism,
+      ...(patch.photoPrism || {}),
+      password: incomingPassword ? incomingPassword : current.photoPrism.password,
+    },
   };
+  if (patch.idleTimeoutMs !== undefined) {
+    next.idleTimeoutMs = Math.max(0, Number(patch.idleTimeoutMs) || 0);
+  }
+  if (patch.sleepDimPercent !== undefined) {
+    next.sleepDimPercent = Math.min(95, Math.max(40, Number(patch.sleepDimPercent) || 78));
+  }
+  if (patch.photoRotateSec !== undefined) {
+    next.photoRotateSec = Math.min(600, Math.max(10, Number(patch.photoRotateSec) || 45));
+  }
   writeConfig(next);
+  const { invalidatePhotoCache } = await import("@/lib/photoprism");
+  invalidatePhotoCache();
   return NextResponse.json({ ...getPublicConfig(), settingsUnlocked: true });
 }

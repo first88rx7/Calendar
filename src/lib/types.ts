@@ -57,13 +57,29 @@ export type WeatherPayload = {
   unit: "fahrenheit" | "celsius";
 };
 
-export type SyncSource = "google" | "mealie" | "weather";
+export type SyncSource = "google" | "mealie" | "weather" | "photos";
 
 export type SyncStatus = {
   source: SyncSource;
   lastSuccessAt: string | null;
   lastError: string | null;
   mode: "live" | "mock";
+};
+
+export type PhotoPrismConfig = {
+  url: string;
+  username: string;
+  password: string;
+  albumUid: string;
+  query: string;
+};
+
+export type PublicPhotoPrism = {
+  url: string;
+  username: string;
+  passwordSet: boolean;
+  albumUid: string;
+  query: string;
 };
 
 export type AppConfig = {
@@ -73,6 +89,9 @@ export type AppConfig = {
   idleTimeoutMs: number;
   nightClockStart: string;
   nightClockEnd: string;
+  sleepDimPercent: number;
+  sleepShowClock: boolean;
+  photoRotateSec: number;
   people: Person[];
   weather: {
     latitude: number;
@@ -85,15 +104,32 @@ export type AppConfig = {
     publicUrl: string;
     groupSlug: string;
   };
+  photoPrism: PhotoPrismConfig;
 };
 
-export type PublicConfig = AppConfig & {
+export type PublicConfig = Omit<AppConfig, "photoPrism"> & {
   googleConnected: boolean;
   googleEmail: string | null;
   mealieConfigured: boolean;
+  photoPrismConfigured: boolean;
   settingsPinRequired: boolean;
   settingsUnlocked: boolean;
   mealieOpenUrl: string | null;
+  photoPrism: PublicPhotoPrism;
+};
+
+export type SlideshowPhoto = {
+  hash: string;
+  src: string;
+  thumbSrc: string;
+  title: string;
+};
+
+export type SlideshowPayload = {
+  configured: boolean;
+  rotateSec: number;
+  photos: SlideshowPhoto[];
+  error?: string;
 };
 
 export type RecipeSummary = {

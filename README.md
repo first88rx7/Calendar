@@ -12,7 +12,7 @@ The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie
 - Mealie meal plan + recipe search through the Mealie API
 - An "Open Mealie" page with a back bar for shopping lists and planning
 - Demo data when Google or Mealie are not configured, so you can try the wall UI first
-- Idle dim / night clock, kiosk install scripts, Docker Compose for the server
+- Idle dim / night clock, optional PhotoPrism background slideshow, kiosk install scripts, Docker Compose for the server
 
 ## Run on the home server
 
@@ -62,6 +62,25 @@ MEALIE_GROUP_SLUG=home
 ```
 
 The wall pulls `GET /api/households/mealplans` and `GET /api/recipes`. Recipe photos are proxied so the token stays on the server. Full Mealie (shopping lists, importing, planning) is the Open Mealie button — a webpage with a back bar, not a second recipe app.
+
+## PhotoPrism background
+
+The wall can cycle random photos from a PhotoPrism library behind the glass cards. Credentials never leave the home server — the kiosk only loads proxied JPEGs.
+
+```
+PHOTOPRISM_URL=http://192.168.1.10:2342
+PHOTOPRISM_USER=admin
+PHOTOPRISM_PASSWORD=...
+# optional: limit to one album (UID from the PhotoPrism album URL)
+PHOTOPRISM_ALBUM=
+# optional: PhotoPrism search filters, e.g. favorite:true
+PHOTOPRISM_QUERY=
+PHOTO_ROTATE_SEC=45
+```
+
+An app password or `PHOTOPRISM_TOKEN` works if you would rather not store the account password. You can also enter the URL and login under Settings. If PhotoPrism is unset or unreachable, the scenic wallpaper stays put.
+
+Sleep uses a dim overlay so the slideshow can keep playing. Lower the dim slider if you want more of the photo to show through the night clock.
 
 ## Weather
 

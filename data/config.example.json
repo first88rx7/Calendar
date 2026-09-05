@@ -5,6 +5,9 @@
   "idleTimeoutMs": 180000,
   "nightClockStart": "22:00",
   "nightClockEnd": "06:30",
+  "sleepDimPercent": 78,
+  "sleepShowClock": true,
+  "photoRotateSec": 45,
   "people": [
     { "id": "alex", "name": "Alex", "color": "#3B9B5C", "calendarId": "" },
     { "id": "sam", "name": "Sam", "color": "#6B5B95", "calendarId": "" },
@@ -20,5 +23,12 @@
   "mealie": {
     "publicUrl": "",
     "groupSlug": "home"
+  },
+  "photoPrism": {
+    "url": "",
+    "username": "",
+    "password": "",
+    "albumUid": "",
+    "query": ""
   }
 }

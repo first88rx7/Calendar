@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { getConfigPath } from "@/lib/paths";
 import { isGoogleConfigured, readOAuth } from "@/lib/google-store";
-import type { AppConfig, PublicConfig } from "@/lib/types";
+import type { AppConfig, PhotoPrismConfig, PublicConfig } from "@/lib/types";
 
 export const DEFAULT_CONFIG: AppConfig = {
   familyName: "Schumann Family",
@@ -10,6 +10,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   idleTimeoutMs: 180_000,
   nightClockStart: "22:00",
   nightClockEnd: "06:30",
+  sleepDimPercent: 78,
+  sleepShowClock: true,
+  photoRotateSec: 45,
   people: [
     { id: "alex", name: "Alex", color: "#3B9B5C", calendarId: "" },
     { id: "sam", name: "Sam", color: "#6B5B95", calendarId: "" },
@@ -25,6 +28,13 @@ export const DEFAULT_CONFIG: AppConfig = {
   mealie: {
     publicUrl: "",
     groupSlug: "home",
+  },
+  photoPrism: {
+    url: "",
+    username: "",
+    password: "",
+    albumUid: "",
+    query: "",
   },
 };
 
@@ -50,6 +60,11 @@ function deepMerge<T extends Record<string, unknown>>(base: T, overlay: Partial<
   return out;
 }
 
+function clamp(value: number, min: number, max: number) {
+  if (Number.isNaN(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
 export function readConfig(): AppConfig {
   const path = getConfigPath();
   let fileConfig: Partial<AppConfig> = {};
@@ -60,7 +75,10 @@ export function readConfig(): AppConfig {
       fileConfig = {};
     }
   }
-  const merged = deepMerge(DEFAULT_CONFIG as unknown as Record<string, unknown>, fileConfig as Record<string, unknown>) as unknown as AppConfig;
+  const merged = deepMerge(
+    DEFAULT_CONFIG as unknown as Record<string, unknown>,
+    fileConfig as Record<string, unknown>,
+  ) as unknown as AppConfig;
 
   if (process.env.FAMILY_NAME) merged.familyName = process.env.FAMILY_NAME;
   if (process.env.HOME_NAME) merged.homeName = process.env.HOME_NAME;
@@ -77,6 +95,25 @@ export function readConfig(): AppConfig {
     merged.weekStartsOn = Number(process.env.WEEK_STARTS_ON) as 0 | 1;
   }
   if (process.env.IDLE_TIMEOUT_MS) merged.idleTimeoutMs = Number(process.env.IDLE_TIMEOUT_MS);
+  if (process.env.SLEEP_DIM_PERCENT) {
+    merged.sleepDimPercent = clamp(Number(process.env.SLEEP_DIM_PERCENT), 40, 95);
+  }
+  if (process.env.SLEEP_SHOW_CLOCK === "0" || process.env.SLEEP_SHOW_CLOCK === "false") {
+    merged.sleepShowClock = false;
+  }
+  if (process.env.PHOTO_ROTATE_SEC) {
+    merged.photoRotateSec = clamp(Number(process.env.PHOTO_ROTATE_SEC), 10, 600);
+  }
+  if (process.env.PHOTOPRISM_URL) merged.photoPrism.url = process.env.PHOTOPRISM_URL;
+  if (process.env.PHOTOPRISM_USER) merged.photoPrism.username = process.env.PHOTOPRISM_USER;
+  if (process.env.PHOTOPRISM_PASSWORD) merged.photoPrism.password = process.env.PHOTOPRISM_PASSWORD;
+  if (process.env.PHOTOPRISM_ALBUM) merged.photoPrism.albumUid = process.env.PHOTOPRISM_ALBUM;
+  if (process.env.PHOTOPRISM_QUERY) merged.photoPrism.query = process.env.PHOTOPRISM_QUERY;
+
+  merged.sleepDimPercent = clamp(merged.sleepDimPercent, 40, 95);
+  merged.photoRotateSec = clamp(merged.photoRotateSec, 10, 600);
+  if (merged.idleTimeoutMs < 0) merged.idleTimeoutMs = 0;
+  merged.photoPrism.url = stripSlash(merged.photoPrism.url);
 
   return merged;
 }
@@ -86,11 +123,28 @@ export function writeConfig(next: AppConfig) {
 }
 
 export function mealieBaseUrl() {
-  return (process.env.MEALIE_URL || readConfig().mealie.publicUrl || "").replace(/\/$/, "");
+  return stripSlash(process.env.MEALIE_URL || readConfig().mealie.publicUrl || "");
 }
 
 export function mealieConfigured() {
   return Boolean(process.env.MEALIE_TOKEN && mealieBaseUrl());
+}
+
+export function photoPrismSettings(): PhotoPrismConfig & { token: string } {
+  const config = readConfig();
+  return {
+    url: stripSlash(process.env.PHOTOPRISM_URL || config.photoPrism.url || ""),
+    username: process.env.PHOTOPRISM_USER || config.photoPrism.username || "",
+    password: process.env.PHOTOPRISM_PASSWORD || config.photoPrism.password || "",
+    albumUid: process.env.PHOTOPRISM_ALBUM || config.photoPrism.albumUid || "",
+    query: process.env.PHOTOPRISM_QUERY || config.photoPrism.query || "",
+    token: process.env.PHOTOPRISM_TOKEN || "",
+  };
+}
+
+export function photoPrismConfigured() {
+  const settings = photoPrismSettings();
+  return Boolean(settings.url);
 }
 
 export function getPublicConfig(): PublicConfig {
@@ -99,6 +153,7 @@ export function getPublicConfig(): PublicConfig {
   const googleConnected =
     Boolean(oauth?.refresh_token || oauth?.access_token) && isGoogleConfigured();
   const mealieUrl = mealieBaseUrl() || config.mealie.publicUrl || null;
+  const prism = photoPrismSettings();
   const people = config.people.map((person) => ({
     ...person,
     calendarId: googleConnected
@@ -107,15 +162,37 @@ export function getPublicConfig(): PublicConfig {
         ? person.calendarId
         : mockCalendarId(person.id),
   }));
+  const rest: Omit<AppConfig, "photoPrism"> = {
+    familyName: config.familyName,
+    homeName: config.homeName,
+    weekStartsOn: config.weekStartsOn,
+    idleTimeoutMs: config.idleTimeoutMs,
+    nightClockStart: config.nightClockStart,
+    nightClockEnd: config.nightClockEnd,
+    sleepDimPercent: config.sleepDimPercent,
+    sleepShowClock: config.sleepShowClock,
+    photoRotateSec: config.photoRotateSec,
+    people: config.people,
+    weather: config.weather,
+    mealie: config.mealie,
+  };
   return {
-    ...config,
+    ...rest,
     people,
     googleConnected,
     googleEmail: oauth?.email ?? null,
     mealieConfigured: mealieConfigured(),
+    photoPrismConfigured: photoPrismConfigured(),
     settingsPinRequired: Boolean(process.env.SETTINGS_PIN),
     settingsUnlocked: !process.env.SETTINGS_PIN,
     mealieOpenUrl: mealieUrl,
+    photoPrism: {
+      url: prism.url,
+      username: prism.username,
+      passwordSet: Boolean(prism.password || prism.token),
+      albumUid: prism.albumUid,
+      query: prism.query,
+    },
   };
 }
 
@@ -129,4 +206,8 @@ export function personForCalendar(calendarId: string, people = readConfig().peop
 
 export function mockCalendarId(personId: string) {
   return `mock:${personId}`;
+}
+
+function stripSlash(value: string) {
+  return value.replace(/\/$/, "");
 }

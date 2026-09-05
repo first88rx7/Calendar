@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { useIdleDim } from "@/components/idle-dim";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,10 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { GoogleCalendarInfo, Person, PublicConfig } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
+import type { GoogleCalendarInfo, Person, PublicConfig, SlideshowPayload } from "@/lib/types";
 
 export function SettingsClient() {
   const params = useSearchParams();
+  const idle = useIdleDim();
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [pin, setPin] = useState("");
   const [locked, setLocked] = useState(false);
@@ -30,6 +33,19 @@ export function SettingsClient() {
   const [locationLabel, setLocationLabel] = useState("");
   const [unit, setUnit] = useState<"fahrenheit" | "celsius">("fahrenheit");
   const [origin, setOrigin] = useState("");
+  const [idleTimeoutMs, setIdleTimeoutMs] = useState("180000");
+  const [sleepDimPercent, setSleepDimPercent] = useState(78);
+  const [sleepShowClock, setSleepShowClock] = useState(true);
+  const [nightClockStart, setNightClockStart] = useState("22:00");
+  const [nightClockEnd, setNightClockEnd] = useState("06:30");
+  const [photoRotateSec, setPhotoRotateSec] = useState("45");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoUser, setPhotoUser] = useState("");
+  const [photoPassword, setPhotoPassword] = useState("");
+  const [photoAlbum, setPhotoAlbum] = useState("");
+  const [photoQuery, setPhotoQuery] = useState("");
+  const [passwordSet, setPasswordSet] = useState(false);
+  const [testingPhotos, setTestingPhotos] = useState(false);
 
   async function loadConfig() {
     const response = await fetch("/api/config", { cache: "no-store" });
@@ -43,6 +59,18 @@ export function SettingsClient() {
     setTimezone(data.weather.timezone);
     setLocationLabel(data.weather.locationLabel);
     setUnit(data.weather.temperatureUnit);
+    setIdleTimeoutMs(String(data.idleTimeoutMs));
+    setSleepDimPercent(data.sleepDimPercent);
+    setSleepShowClock(data.sleepShowClock);
+    setNightClockStart(data.nightClockStart);
+    setNightClockEnd(data.nightClockEnd);
+    setPhotoRotateSec(String(data.photoRotateSec));
+    setPhotoUrl(data.photoPrism.url);
+    setPhotoUser(data.photoPrism.username);
+    setPhotoPassword("");
+    setPhotoAlbum(data.photoPrism.albumUid);
+    setPhotoQuery(data.photoPrism.query);
+    setPasswordSet(data.photoPrism.passwordSet);
     setLocked(data.settingsPinRequired && !data.settingsUnlocked);
     return data;
   }
@@ -96,12 +124,25 @@ export function SettingsClient() {
         familyName,
         homeName,
         people,
+        idleTimeoutMs: Number(idleTimeoutMs),
+        sleepDimPercent,
+        sleepShowClock,
+        nightClockStart,
+        nightClockEnd,
+        photoRotateSec: Number(photoRotateSec),
         weather: {
           latitude: Number(latitude),
           longitude: Number(longitude),
           timezone,
           locationLabel,
           temperatureUnit: unit,
+        },
+        photoPrism: {
+          url: photoUrl.trim(),
+          username: photoUser.trim(),
+          password: photoPassword,
+          albumUid: photoAlbum.trim(),
+          query: photoQuery.trim(),
         },
       }),
     });
@@ -118,6 +159,31 @@ export function SettingsClient() {
     toast.success("Google disconnected");
     setCalendars([]);
     await loadConfig();
+  }
+
+  async function testPhotos() {
+    setTestingPhotos(true);
+    try {
+      const response = await fetch("/api/photos/slideshow", { cache: "no-store" });
+      const data = (await response.json()) as SlideshowPayload;
+      if (!data.configured) {
+        toast.error("Save a PhotoPrism URL first.");
+        return;
+      }
+      if (data.error && data.photos.length === 0) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success(
+        data.photos.length
+          ? `PhotoPrism is reachable — ${data.photos.length} photos ready to cycle.`
+          : "Signed in, but PhotoPrism returned no photos for that album or search.",
+      );
+    } catch {
+      toast.error("Could not reach the PhotoPrism proxy.");
+    } finally {
+      setTestingPhotos(false);
+    }
   }
 
   if (!config) {
@@ -252,6 +318,162 @@ export function SettingsClient() {
             </SelectContent>
           </Select>
         </div>
+      </section>
+
+      <section className="glass space-y-4 rounded-2xl p-4">
+        <h2 className="text-xl font-medium">Sleep and dim</h2>
+        <p className="text-muted-foreground">
+          After the wall sits unused, the dashboard fades so the background can keep cycling. Tap
+          anywhere to wake it. At night the timeout shortens automatically.
+        </p>
+        <div className="space-y-2">
+          <Label>Idle timeout</Label>
+          <Select value={idleTimeoutMs} onValueChange={(value) => setIdleTimeoutMs(String(value))}>
+            <SelectTrigger className="h-12 w-full min-h-12">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30000">30 seconds</SelectItem>
+              <SelectItem value="60000">1 minute</SelectItem>
+              <SelectItem value="180000">3 minutes</SelectItem>
+              <SelectItem value="300000">5 minutes</SelectItem>
+              <SelectItem value="600000">10 minutes</SelectItem>
+              <SelectItem value="0">Never — stay awake</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dim">Sleep dim · {sleepDimPercent}%</Label>
+          <input
+            id="dim"
+            type="range"
+            min={40}
+            max={95}
+            value={sleepDimPercent}
+            onChange={(event) => setSleepDimPercent(Number(event.target.value))}
+            className="h-8 w-full accent-white"
+          />
+          <p className="text-sm text-muted-foreground">
+            Lower keeps PhotoPrism photos visible behind the clock. Higher is closer to a black sleep
+            screen.
+          </p>
+        </div>
+        <label className="flex min-h-12 items-center justify-between gap-4 rounded-xl bg-white/5 px-3">
+          <span>Show the night clock</span>
+          <Switch checked={sleepShowClock} onCheckedChange={setSleepShowClock} />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="night-start">Night starts</Label>
+            <Input
+              id="night-start"
+              type="time"
+              className="h-12 text-base"
+              value={nightClockStart}
+              onChange={(event) => setNightClockStart(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="night-end">Night ends</Label>
+            <Input
+              id="night-end"
+              type="time"
+              className="h-12 text-base"
+              value={nightClockEnd}
+              onChange={(event) => setNightClockEnd(event.target.value)}
+            />
+          </div>
+        </div>
+        <Button variant="secondary" className="h-12 text-base" type="button" onClick={() => idle.dimNow()}>
+          Dim now
+        </Button>
+      </section>
+
+      <section className="glass space-y-3 rounded-2xl p-4">
+        <h2 className="text-xl font-medium">PhotoPrism background</h2>
+        <p className="text-muted-foreground">
+          When a server URL is saved, the wall cycles random photos behind the glass cards. Leave it
+          blank to keep the scenic wallpaper. Credentials stay on the home server; the kiosk only
+          sees proxied images.
+        </p>
+        <div className="space-y-2">
+          <Label htmlFor="pp-url">PhotoPrism URL</Label>
+          <Input
+            id="pp-url"
+            className="h-12 text-base"
+            placeholder="http://192.168.1.10:2342"
+            value={photoUrl}
+            onChange={(event) => setPhotoUrl(event.target.value)}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="pp-user">Username</Label>
+            <Input
+              id="pp-user"
+              className="h-12 text-base"
+              value={photoUser}
+              onChange={(event) => setPhotoUser(event.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pp-pass">Password or app password</Label>
+            <Input
+              id="pp-pass"
+              type="password"
+              className="h-12 text-base"
+              placeholder={passwordSet ? "Unchanged" : "Optional if the library is public"}
+              value={photoPassword}
+              onChange={(event) => setPhotoPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="pp-album">Album UID (optional)</Label>
+          <Input
+            id="pp-album"
+            className="h-12 text-base"
+            placeholder="From the album URL in PhotoPrism"
+            value={photoAlbum}
+            onChange={(event) => setPhotoAlbum(event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="pp-query">Search filter (optional)</Label>
+          <Input
+            id="pp-query"
+            className="h-12 text-base"
+            placeholder="favorite:true quality:5"
+            value={photoQuery}
+            onChange={(event) => setPhotoQuery(event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>How often photos change</Label>
+          <Select value={photoRotateSec} onValueChange={(value) => setPhotoRotateSec(String(value))}>
+            <SelectTrigger className="h-12 w-full min-h-12">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="20">Every 20 seconds</SelectItem>
+              <SelectItem value="45">Every 45 seconds</SelectItem>
+              <SelectItem value="60">Every minute</SelectItem>
+              <SelectItem value="120">Every 2 minutes</SelectItem>
+              <SelectItem value="300">Every 5 minutes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="secondary"
+          className="h-12 text-base"
+          type="button"
+          disabled={testingPhotos}
+          onClick={() => void testPhotos()}
+        >
+          {testingPhotos ? "Checking PhotoPrism…" : "Test PhotoPrism"}
+        </Button>
       </section>
 
       <section className="glass space-y-3 rounded-2xl p-4">

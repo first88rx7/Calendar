@@ -24,7 +24,7 @@ export function listSyncStatus(): SyncStatus[] {
     .prepare("SELECT source, last_success_at as lastSuccessAt, last_error as lastError, mode FROM sync_state")
     .all() as SyncStatus[];
   const bySource = new Map(rows.map((row) => [row.source, row]));
-  return (["google", "mealie", "weather"] as const).map((source) => {
+  return (["google", "mealie", "weather", "photos"] as const).map((source) => {
     const row = bySource.get(source);
     return {
       source,

@@ -198,7 +198,7 @@ export async function listSlideshowPhotos(force = false) {
         if (!hash) return null;
         return {
           hash,
-          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_1920`,
+          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_2560`,
           thumbSrc: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=tile_500`,
           title: photo.Title || photo.title || "",
         } satisfies SlideshowPhoto;

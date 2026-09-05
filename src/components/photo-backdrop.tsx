@@ -73,19 +73,28 @@ export function PhotoBackdrop() {
   }, [urls, rotateMs]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-black" aria-hidden>
       {layers.map((src, layer) => (
-        <img
+        <div
           key={layer}
-          src={src}
-          alt=""
-          className="absolute inset-0 size-full object-cover transition-opacity duration-1000"
+          className="absolute inset-0 transition-opacity duration-1000"
           style={{ opacity: front === layer ? 1 : 0 }}
-          onError={(event) => {
-            if (event.currentTarget.src.endsWith(FALLBACK)) return;
-            event.currentTarget.src = FALLBACK;
-          }}
-        />
+        >
+          <img
+            src={src}
+            alt=""
+            className="absolute inset-0 size-full scale-125 object-cover blur-2xl"
+          />
+          <img
+            src={src}
+            alt=""
+            className="absolute inset-0 size-full object-contain object-center"
+            onError={(event) => {
+              if (event.currentTarget.src.endsWith(FALLBACK)) return;
+              event.currentTarget.src = FALLBACK;
+            }}
+          />
+        </div>
       ))}
       <div className="absolute inset-0 bg-gradient-to-b from-black/28 via-black/40 to-black/58" />
     </div>

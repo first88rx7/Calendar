@@ -50,5 +50,13 @@ export async function PUT(request: NextRequest) {
   writeConfig(next);
   const { invalidatePhotoCache } = await import("@/lib/photoprism");
   invalidatePhotoCache();
+  if (patch.weather) {
+    try {
+      const { syncWeather } = await import("@/lib/weather");
+      await syncWeather();
+    } catch (error) {
+      console.error("Weather refresh after settings save failed", error);
+    }
+  }
   return NextResponse.json({ ...getPublicConfig(), settingsUnlocked: true });
 }

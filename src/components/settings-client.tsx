@@ -46,6 +46,8 @@ export function SettingsClient() {
   const [photoQuery, setPhotoQuery] = useState("");
   const [passwordSet, setPasswordSet] = useState(false);
   const [testingPhotos, setTestingPhotos] = useState(false);
+  const [zip, setZip] = useState("");
+  const [lookingUpZip, setLookingUpZip] = useState(false);
 
   async function loadConfig() {
     const response = await fetch("/api/config", { cache: "no-store" });
@@ -154,6 +156,40 @@ export function SettingsClient() {
     await loadConfig();
   }
 
+  async function lookupZip() {
+    setLookingUpZip(true);
+    try {
+      const response = await fetch(`/api/geo?zip=${encodeURIComponent(zip)}`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error || "Could not look up that ZIP");
+        return;
+      }
+      setLatitude(String(data.latitude));
+      setLongitude(String(data.longitude));
+      setTimezone(data.timezone);
+      setLocationLabel(data.locationLabel);
+      toast.success(`Weather set to ${data.locationLabel}`);
+    } catch {
+      toast.error("ZIP lookup failed");
+    } finally {
+      setLookingUpZip(false);
+    }
+  }
+
+  function addPerson() {
+    const n = people.length + 1;
+    setPeople((current) => [
+      ...current,
+      {
+        id: `person-${Date.now()}`,
+        name: `Person ${n}`,
+        color: n % 2 === 0 ? "#6B5B95" : "#3B6FDB",
+        calendarId: "",
+      },
+    ]);
+  }
+
   async function disconnect() {
     await fetch("/api/auth/google/logout", { method: "POST" });
     toast.success("Google disconnected");
@@ -242,8 +278,17 @@ export function SettingsClient() {
           )}
         </div>
         {people.map((person, index) => (
-          <div key={person.id} className="grid gap-2 sm:grid-cols-[8rem_1fr]">
-            <Label className="self-center">{person.name}</Label>
+          <div key={person.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+            <Input
+              className="h-12 text-base"
+              value={person.name}
+              onChange={(event) =>
+                setPeople((current) =>
+                  current.map((item, i) => (i === index ? { ...item, name: event.target.value } : item)),
+                )
+              }
+              aria-label="Person name"
+            />
             <Select
               value={person.calendarId || "__none__"}
               onValueChange={(value) => {
@@ -269,8 +314,34 @@ export function SettingsClient() {
                 )}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={person.color}
+                onChange={(event) =>
+                  setPeople((current) =>
+                    current.map((item, i) => (i === index ? { ...item, color: event.target.value } : item)),
+                  )
+                }
+                className="size-12 cursor-pointer rounded-xl border border-white/15 bg-transparent p-1"
+                aria-label={`${person.name} color`}
+              />
+              {people.length > 1 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-12"
+                  onClick={() => setPeople((current) => current.filter((_, i) => i !== index))}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
           </div>
         ))}
+        <Button type="button" variant="secondary" className="h-12 text-base" onClick={addPerson}>
+          Add person
+        </Button>
       </section>
 
       <section className="glass space-y-3 rounded-2xl p-4">
@@ -282,6 +353,31 @@ export function SettingsClient() {
         <div className="space-y-2">
           <Label htmlFor="family">Family name</Label>
           <Input id="family" className="h-12 text-base" value={familyName} onChange={(e) => setFamilyName(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="zip">US ZIP code</Label>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              id="zip"
+              className="h-12 min-w-[8rem] flex-1 text-base"
+              inputMode="numeric"
+              placeholder="55374"
+              value={zip}
+              onChange={(e) => setZip(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-12 text-base"
+              disabled={lookingUpZip}
+              onClick={() => void lookupZip()}
+            >
+              {lookingUpZip ? "Looking up…" : "Fill from ZIP"}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Looks up city, coordinates, and timezone. Save settings afterward so the forecast updates.
+          </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">

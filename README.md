@@ -20,7 +20,7 @@ The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie
 
 ```bash
 cp .env.example .env
-# edit .env — Mealie token, Google OAuth, weather coordinates
+# edit .env — Mealie token, Google OAuth. Weather ZIP is set in Settings.
 docker compose up --build -d
 ```
 

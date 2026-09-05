@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
   if (patch.weather) {
     try {
       const { syncWeather } = await import("@/lib/weather");
-      await syncWeather();
+      await syncWeather(next.weather);
     } catch (error) {
       console.error("Weather refresh after settings save failed", error);
     }

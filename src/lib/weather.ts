@@ -2,7 +2,7 @@ import { readConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { mockWeather } from "@/lib/mock";
 import { setSyncState } from "@/lib/sync-state";
-import type { WeatherDay, WeatherHour, WeatherNow, WeatherPayload } from "@/lib/types";
+import type { AppConfig, WeatherDay, WeatherHour, WeatherNow, WeatherPayload } from "@/lib/types";
 
 export { weatherLabel } from "@/lib/weather-copy";
 
@@ -28,9 +28,9 @@ type OpenMeteoResponse = {
   };
 };
 
-export async function syncWeather() {
-  const config = readConfig();
-  const { latitude, longitude, timezone, temperatureUnit } = config.weather;
+export async function syncWeather(weatherOverride?: AppConfig["weather"]) {
+  const weather = weatherOverride ?? readConfig().weather;
+  const { latitude, longitude, timezone, temperatureUnit } = weather;
   const unit = temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
   const params = new URLSearchParams({
     latitude: String(latitude),

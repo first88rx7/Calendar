@@ -82,13 +82,18 @@ export function readConfig(): AppConfig {
 
   if (process.env.FAMILY_NAME) merged.familyName = process.env.FAMILY_NAME;
   if (process.env.HOME_NAME) merged.homeName = process.env.HOME_NAME;
-  if (process.env.WEATHER_LAT) merged.weather.latitude = Number(process.env.WEATHER_LAT);
-  if (process.env.WEATHER_LON) merged.weather.longitude = Number(process.env.WEATHER_LON);
-  if (process.env.WEATHER_TIMEZONE) merged.weather.timezone = process.env.WEATHER_TIMEZONE;
-  if (process.env.WEATHER_UNIT === "celsius" || process.env.WEATHER_UNIT === "fahrenheit") {
-    merged.weather.temperatureUnit = process.env.WEATHER_UNIT;
+  // WEATHER_* in .env is first-boot only. systemd EnvironmentFile would otherwise
+  // pin Seattle (or whatever was in .env) on every read, so a ZIP saved in
+  // Settings never reached the kitchen widget.
+  if (!fileHasWeather(fileConfig)) {
+    if (process.env.WEATHER_LAT) merged.weather.latitude = Number(process.env.WEATHER_LAT);
+    if (process.env.WEATHER_LON) merged.weather.longitude = Number(process.env.WEATHER_LON);
+    if (process.env.WEATHER_TIMEZONE) merged.weather.timezone = process.env.WEATHER_TIMEZONE;
+    if (process.env.WEATHER_UNIT === "celsius" || process.env.WEATHER_UNIT === "fahrenheit") {
+      merged.weather.temperatureUnit = process.env.WEATHER_UNIT;
+    }
+    if (process.env.WEATHER_LABEL) merged.weather.locationLabel = process.env.WEATHER_LABEL;
   }
-  if (process.env.WEATHER_LABEL) merged.weather.locationLabel = process.env.WEATHER_LABEL;
   if (process.env.MEALIE_URL) merged.mealie.publicUrl = process.env.MEALIE_URL;
   if (process.env.MEALIE_GROUP_SLUG) merged.mealie.groupSlug = process.env.MEALIE_GROUP_SLUG;
   if (process.env.WEEK_STARTS_ON === "1" || process.env.WEEK_STARTS_ON === "0") {
@@ -206,6 +211,17 @@ export function personForCalendar(calendarId: string, people = readConfig().peop
 
 export function mockCalendarId(personId: string) {
   return `mock:${personId}`;
+}
+
+function fileHasWeather(fileConfig: Partial<AppConfig>) {
+  const weather = fileConfig.weather;
+  if (!weather || typeof weather !== "object") return false;
+  return (
+    weather.latitude != null ||
+    weather.longitude != null ||
+    Boolean(weather.timezone) ||
+    Boolean(weather.locationLabel)
+  );
 }
 
 function stripSlash(value: string) {

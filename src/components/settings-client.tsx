@@ -165,11 +165,27 @@ export function SettingsClient() {
         toast.error(data.error || "Could not look up that ZIP");
         return;
       }
+      const nextWeather = {
+        latitude: data.latitude,
+        longitude: data.longitude,
+        timezone: data.timezone,
+        locationLabel: data.locationLabel,
+        temperatureUnit: unit,
+      };
       setLatitude(String(data.latitude));
       setLongitude(String(data.longitude));
       setTimezone(data.timezone);
       setLocationLabel(data.locationLabel);
-      toast.success(`Weather set to ${data.locationLabel}`);
+      const persist = await fetch("/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weather: nextWeather }),
+      });
+      if (!persist.ok) {
+        toast.success(`Filled ${data.locationLabel}. Save settings to update the board.`);
+        return;
+      }
+      toast.success(`Weather is now ${data.locationLabel}`);
     } catch {
       toast.error("ZIP lookup failed");
     } finally {
@@ -376,7 +392,7 @@ export function SettingsClient() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Looks up city, coordinates, and timezone. Save settings afterward so the forecast updates.
+            Looks up city, coordinates, and timezone, then refreshes the kitchen forecast.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { googleAuthUrl, isGoogleConfigured } from "@/lib/google";
+import { browserOrigin } from "@/lib/http";
 import { settingsUnlocked } from "@/lib/settings-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const origin = browserOrigin(request);
   if (!(await settingsUnlocked()) && process.env.SETTINGS_PIN) {
-    return NextResponse.redirect(new URL("/settings", request.url));
+    return NextResponse.redirect(`${origin}/settings`);
   }
   if (!isGoogleConfigured()) {
-    return NextResponse.redirect(new URL("/settings?error=google-config", request.url));
+    return NextResponse.redirect(`${origin}/settings?error=google-config`);
   }
-  const origin = request.nextUrl.origin;
   return NextResponse.redirect(googleAuthUrl(origin));
 }

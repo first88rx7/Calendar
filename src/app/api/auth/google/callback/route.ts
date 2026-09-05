@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCode } from "@/lib/google";
+import { browserOrigin } from "@/lib/http";
 import { runSync } from "@/lib/sync";
 
 export const runtime = "nodejs";
@@ -7,16 +8,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const origin = request.nextUrl.origin;
+  const origin = browserOrigin(request);
   if (!code) {
-    return NextResponse.redirect(new URL("/settings?error=google-denied", request.url));
+    return NextResponse.redirect(`${origin}/settings?error=google-denied`);
   }
   try {
     await exchangeCode(code, origin);
     await runSync();
-    return NextResponse.redirect(new URL("/settings?connected=1", request.url));
+    return NextResponse.redirect(`${origin}/settings?connected=1`);
   } catch (error) {
     console.error(error);
-    return NextResponse.redirect(new URL("/settings?error=google-exchange", request.url));
+    return NextResponse.redirect(`${origin}/settings?error=google-exchange`);
   }
 }

@@ -106,6 +106,8 @@ PHOTO_ROTATE_SEC=45
 
 An app password or `PHOTOPRISM_TOKEN` works if you would rather not store the account password. You can also enter the URL and login under Settings. If PhotoPrism is unset or unreachable, the scenic wallpaper stays put.
 
+The kitchen wall only asks PhotoPrism for still JPEGs (about two dozen, 1280px). It does not play video. If PhotoPrism itself is pegged at 100% CPU/RAM, that is almost always **on-demand FFmpeg** (playing an iPhone/HEVC clip) or **indexing/faces**, not this dashboard. A 2-core / 3 GB box with 512 MB swap will freeze during transcode. Copy [deploy/photoprism-lowmem.env](deploy/photoprism-lowmem.env) into the PhotoPrism environment, restart it, and give that VM **6–8 GB RAM** (and **4 GB swap**) if you want in-browser video. While idle you can pre-convert: `photoprism convert`.
+
 Sleep uses a dim overlay so the slideshow can keep playing. Lower the dim slider if you want more of the photo to show through the night clock.
 
 ## Weather

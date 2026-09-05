@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const hash = request.nextUrl.searchParams.get("hash") || "";
-  const size = request.nextUrl.searchParams.get("size") || "fit_1920";
+  const size = request.nextUrl.searchParams.get("size") || "fit_1280";
   try {
     const { buffer, contentType } = await fetchPhotoBytes(hash, size);
     return new NextResponse(buffer, {

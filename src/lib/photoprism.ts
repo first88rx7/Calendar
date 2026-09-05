@@ -6,7 +6,7 @@ import type { SlideshowPhoto } from "@/lib/types";
 export { extractAlbumUid, normalizePhotoPrismUrl };
 
 const PHOTO_HASH = /^[a-fA-F0-9]{32,64}$/;
-const PREVIEW_SIZES = ["fit_1920", "fit_1280", "fit_2560", "tile_500"] as const;
+const PREVIEW_SIZES = ["fit_1280", "fit_1920", "fit_720", "tile_500"] as const;
 const PREVIEW_SIZE_SET = new Set<string>(PREVIEW_SIZES);
 
 type SessionCache = {
@@ -36,7 +36,7 @@ function isHash(value: string) {
 
 export function previewSize(value?: string | null) {
   if (value && PREVIEW_SIZE_SET.has(value)) return value;
-  return "fit_1920";
+  return "fit_1280";
 }
 
 function resolvedSettings() {
@@ -154,7 +154,7 @@ function photoSearchAttempts() {
 
   const make = (extra: Record<string, string>) => {
     const params = new URLSearchParams({
-      count: "80",
+      count: "24",
       offset: "0",
       order: "random",
       merged: "true",
@@ -248,7 +248,7 @@ export async function listSlideshowPhotos(force = false) {
         if (!hash) return null;
         return {
           hash,
-          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_1920`,
+          src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_1280`,
           thumbSrc: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=tile_500`,
           title: photo.Title || photo.title || "",
         } satisfies SlideshowPhoto;
@@ -269,7 +269,7 @@ export async function listSlideshowPhotos(force = false) {
   }
 }
 
-export async function fetchPhotoBytes(hash: string, size = "fit_1920") {
+export async function fetchPhotoBytes(hash: string, size = "fit_1280") {
   if (!isHash(hash)) {
     throw new Error("Bad photo hash");
   }
@@ -287,7 +287,7 @@ export async function fetchPhotoBytes(hash: string, size = "fit_1920") {
     previewToken = sessionCache?.previewToken || "public";
   }
 
-  const sizes = [previewSize(size), "fit_1920", "fit_1280"].filter(
+  const sizes = [previewSize(size), "fit_1280", "fit_720"].filter(
     (item, index, all) => all.indexOf(item) === index,
   );
   let lastStatus = 0;

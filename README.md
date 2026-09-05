@@ -1,6 +1,6 @@
 # Household
 
-A touch-first family wall dashboard: a week calendar with two-way Google Calendar, this week's Mealie meal plan, and a weather strip. It is meant to live on a 15.6" kitchen panel driven by a Raspberry Pi Zero 2 W or Banana Pi M2 Zero.
+A touch-first family wall dashboard: a week calendar with two-way Google Calendar, this week's Mealie meal plan, and a weather strip. It is meant to live on a 15.6" kitchen panel driven by a Raspberry Pi Zero 2 (or Zero 2 W) or Banana Pi M2 Zero.
 
 The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie. That is the only arrangement that fits 512MB of RAM plus a 1080p touchscreen.
 
@@ -92,12 +92,12 @@ Open-Meteo is used by default. Set latitude, longitude, timezone, and `fahrenhei
 
 Do not run this Node app on the 512MB board. The Pi only opens a fullscreen browser at the home-server URL.
 
-**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub.
+**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub. SSH in and `git clone` this repo — you do not need to copy files from Windows.
 
 Step-by-step (Imager settings, wiring, `scp`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
 
 ```bash
-# on the Pi, after copying deploy/kiosk onto it
+# on the Pi, after: git clone <this-repo> && cd household/deploy/kiosk
 HOUSEHOLD_URL=http://<home-server-ip>:3847 ./install.sh
 sudo reboot
 ```

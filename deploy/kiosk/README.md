@@ -46,24 +46,43 @@ If you would rather not use Wi-Fi, skip the SSID in Imager and plug a USB Ethern
 
 The home-server app should already be up at `http://<server-ip>:3847`. Check that URL on a phone first.
 
-## 2. Copy the kiosk scripts onto the Pi
+## 2. SSH in and clone this repo
 
-From the computer that has this project:
+Enable SSH in Imager, wait for the Pi to join the LAN, then from Windows (PowerShell or Windows Terminal):
 
-```bash
-scp -r deploy/kiosk <user>@kitchen-pi.local:~/kiosk
+```powershell
 ssh <user>@kitchen-pi.local
 ```
 
-If `.local` does not resolve, use the Pi's IP from your router.
+If `.local` does not resolve, use the Pi's IP from the router.
+
+On the Pi, install git and clone the household repo (public HTTPS is the easy path):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+git clone https://github.com/<you>/household.git
+cd household/deploy/kiosk
+chmod +x install.sh kiosk.sh
+```
+
+Replace the URL with whatever GitHub (or GitLab) shows after you create the repository.
+
+If the repo is **private**, either clone with a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) when git asks for a password, or add an SSH deploy key:
+
+```bash
+ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+# paste that public key as a read-only deploy key on the repo, then:
+git clone git@github.com:<you>/household.git
+cd household/deploy/kiosk
+```
 
 ## 3. Point it at the dashboard and reboot
 
-On the Pi:
+Still on the Pi, in `deploy/kiosk`:
 
 ```bash
-cd ~/kiosk
-chmod +x install.sh kiosk.sh
 HOUSEHOLD_URL=http://<home-server-ip>:3847 ./install.sh
 sudo reboot
 ```

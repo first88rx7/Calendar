@@ -26,7 +26,7 @@ docker compose up --build -d
 
 The dashboard listens on port **3847**. Point a browser at `http://<server-ip>:3847`.
 
-Without Docker:
+Without Docker (LXC: give the CT **2048 MB RAM** and **1024 MB swap** — `next build` OOMs on 1 GB):
 
 ```bash
 npm install

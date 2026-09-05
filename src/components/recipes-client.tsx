@@ -30,7 +30,9 @@ export function RecipesClient() {
   async function search(next = query) {
     setError(null);
     try {
-      const response = await fetch(`/api/recipes?q=${encodeURIComponent(next)}`);
+      const response = await fetch(`/api/recipes?q=${encodeURIComponent(next)}`, {
+        cache: "no-store",
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Search failed");
       setRecipes(data.recipes);
@@ -41,7 +43,9 @@ export function RecipesClient() {
 
   async function openRecipe(slug: string) {
     try {
-      const response = await fetch(`/api/recipes/${encodeURIComponent(slug)}`);
+      const response = await fetch(`/api/recipes/${encodeURIComponent(slug)}`, {
+        cache: "no-store",
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Recipe missing");
       setDetail(data);
@@ -52,7 +56,7 @@ export function RecipesClient() {
 
   useEffect(() => {
     void search("");
-    void fetch("/api/config")
+    void fetch("/api/config", { cache: "no-store" })
       .then((res) => res.json())
       .then(setConfig);
     // eslint-disable-next-line react-hooks/exhaustive-deps

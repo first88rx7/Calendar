@@ -9,7 +9,7 @@ import type { PublicConfig } from "@/lib/types";
 export default function MealieFramePage() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   useEffect(() => {
-    void fetch("/api/config")
+    void fetch("/api/config", { cache: "no-store" })
       .then((res) => res.json())
       .then(setConfig);
   }, []);

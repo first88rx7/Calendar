@@ -31,7 +31,7 @@ export function SettingsClient() {
   const [origin, setOrigin] = useState("");
 
   async function loadConfig() {
-    const response = await fetch("/api/config");
+    const response = await fetch("/api/config", { cache: "no-store" });
     const data = (await response.json()) as PublicConfig;
     setConfig(data);
     setPeople(data.people);
@@ -46,7 +46,7 @@ export function SettingsClient() {
   }
 
   async function loadCalendars() {
-    const response = await fetch("/api/google/calendars");
+    const response = await fetch("/api/google/calendars", { cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     setCalendars(data.calendars || []);

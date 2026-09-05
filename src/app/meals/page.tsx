@@ -14,7 +14,7 @@ export default function MealsPage() {
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/dashboard");
+      const response = await fetch("/api/dashboard", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load meals");
       setData(await response.json());
     } catch (err) {

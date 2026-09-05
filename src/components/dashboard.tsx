@@ -32,12 +32,17 @@ export function Dashboard() {
     try {
       if (sync) {
         setRefreshing(true);
-        const response = await fetch(`/api/sync?week=${key || ""}`, { method: "POST" });
+        const response = await fetch(`/api/sync?week=${key || ""}`, {
+          method: "POST",
+          cache: "no-store",
+        });
         if (!response.ok) throw new Error("Sync failed");
         setData(await response.json());
         return;
       }
-      const response = await fetch(`/api/dashboard?week=${key || ""}`);
+      const response = await fetch(`/api/dashboard?week=${key || ""}`, {
+        cache: "no-store",
+      });
       if (!response.ok) throw new Error("Could not load the household board");
       setData(await response.json());
     } catch (err) {

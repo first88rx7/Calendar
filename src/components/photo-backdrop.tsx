@@ -1,5 +1,8 @@
 "use client";
 
+/* PhotoPrism hashes change too often for next/image. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from "react";
 import type { SlideshowPayload } from "@/lib/types";
 
@@ -72,8 +75,6 @@ export function PhotoBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
       {layers.map((src, layer) => (
-        {/* PhotoPrism hashes change too often for next/image. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={layer}
           src={src}

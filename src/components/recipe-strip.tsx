@@ -60,9 +60,9 @@ export function RecipeStrip({
   }, [fingerprint, recipes.length]);
 
   return (
-    <div className={compact ? "p-3" : "p-5"}>
-      <div className={compact ? "mb-2 flex items-center justify-between" : "mb-3 flex items-center justify-between"}>
-        <h2 className={compact ? "text-base font-semibold" : "text-lg font-semibold"}>Recipe Ideas</h2>
+    <div className={compact ? "px-3 py-2" : "p-5"}>
+      <div className={compact ? "mb-1.5 flex items-center justify-between" : "mb-3 flex items-center justify-between"}>
+        <h2 className={compact ? "text-sm font-semibold" : "text-lg font-semibold"}>Recipe Ideas</h2>
         <Link href="/recipes" className="text-sm text-white/70 hover:text-white">
           View All Recipes →
         </Link>
@@ -70,7 +70,13 @@ export function RecipeStrip({
       {visible.length === 0 ? (
         <p className="text-sm text-white/60">No recipes to show yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
+        <div
+          className={
+            compact
+              ? "grid grid-cols-5 gap-2"
+              : "grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5"
+          }
+        >
           {visible.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} compact={compact} />
           ))}
@@ -87,24 +93,26 @@ function RecipeCard({ recipe, compact = false }: { recipe: RecipeSummary; compac
       href={`/recipes?open=${recipe.slug}`}
       className="group overflow-hidden rounded-2xl bg-black/25 ring-1 ring-white/10"
     >
-      <div className={compact ? "relative aspect-[16/9]" : "relative aspect-[4/3]"}>
+      <div className={compact ? "relative aspect-[2.4/1]" : "relative aspect-[4/3]"}>
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt="" className="size-full object-cover" />
         ) : (
           <div className="size-full bg-white/10" />
         )}
-        {!compact && (
+        {compact ? (
+          <p className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-2 py-1 text-xs font-semibold">
+            {recipe.name}
+          </p>
+        ) : (
           <span className="absolute top-2 right-2 rounded-full bg-black/45 p-1.5 text-white">
             <Heart className="size-3.5" />
           </span>
         )}
       </div>
-      <div className={compact ? "space-y-0.5 p-2" : "space-y-1 p-3"}>
-        <p className={compact ? "truncate text-sm font-semibold" : "line-clamp-2 text-sm font-semibold leading-snug"}>
-          {recipe.name}
-        </p>
-        {!compact && (
+      {!compact && (
+        <div className="space-y-1 p-3">
+          <p className="line-clamp-2 text-sm font-semibold leading-snug">{recipe.name}</p>
           <p className="flex items-center gap-3 text-xs text-white/65">
             {recipe.totalTime && (
               <span className="inline-flex items-center gap-1">
@@ -119,8 +127,8 @@ function RecipeCard({ recipe, compact = false }: { recipe: RecipeSummary; compac
               </span>
             )}
           </p>
-        )}
-      </div>
+        </div>
+      )}
     </Link>
   );
 }

@@ -34,7 +34,13 @@ function pickVisible(pool: RecipeSummary[], previousIds: string[] = []): RecipeS
   return [...fresh, ...reused].slice(0, VISIBLE);
 }
 
-export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
+export function RecipeStrip({
+  recipes,
+  compact = false,
+}: {
+  recipes: RecipeSummary[];
+  compact?: boolean;
+}) {
   const fingerprint = useMemo(() => poolKey(recipes), [recipes]);
   const poolRef = useRef(recipes);
   poolRef.current = recipes;
@@ -54,9 +60,9 @@ export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
   }, [fingerprint, recipes.length]);
 
   return (
-    <div className="p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Recipe Ideas</h2>
+    <div className={compact ? "p-3" : "p-5"}>
+      <div className={compact ? "mb-2 flex items-center justify-between" : "mb-3 flex items-center justify-between"}>
+        <h2 className={compact ? "text-base font-semibold" : "text-lg font-semibold"}>Recipe Ideas</h2>
         <Link href="/recipes" className="text-sm text-white/70 hover:text-white">
           View All Recipes →
         </Link>
@@ -64,9 +70,9 @@ export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
       {visible.length === 0 ? (
         <p className="text-sm text-white/60">No recipes to show yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
           {visible.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.id} recipe={recipe} compact={compact} />
           ))}
         </div>
       )}
@@ -74,40 +80,46 @@ export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
   );
 }
 
-function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
+function RecipeCard({ recipe, compact = false }: { recipe: RecipeSummary; compact?: boolean }) {
   const src = mediaSrc(recipe.imageUrl) || recipe.imageUrl;
   return (
     <Link
       href={`/recipes?open=${recipe.slug}`}
       className="group overflow-hidden rounded-2xl bg-black/25 ring-1 ring-white/10"
     >
-      <div className="relative aspect-[4/3]">
+      <div className={compact ? "relative aspect-[16/9]" : "relative aspect-[4/3]"}>
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt="" className="size-full object-cover" />
         ) : (
           <div className="size-full bg-white/10" />
         )}
-        <span className="absolute top-2 right-2 rounded-full bg-black/45 p-1.5 text-white">
-          <Heart className="size-3.5" />
-        </span>
+        {!compact && (
+          <span className="absolute top-2 right-2 rounded-full bg-black/45 p-1.5 text-white">
+            <Heart className="size-3.5" />
+          </span>
+        )}
       </div>
-      <div className="space-y-1 p-3">
-        <p className="line-clamp-2 text-sm font-semibold leading-snug">{recipe.name}</p>
-        <p className="flex items-center gap-3 text-xs text-white/65">
-          {recipe.totalTime && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="size-3" />
-              {recipe.totalTime}
-            </span>
-          )}
-          {recipe.rating != null && (
-            <span className="inline-flex items-center gap-1">
-              <Star className="size-3 fill-amber-300 text-amber-300" />
-              {recipe.rating.toFixed(1)}
-            </span>
-          )}
+      <div className={compact ? "space-y-0.5 p-2" : "space-y-1 p-3"}>
+        <p className={compact ? "truncate text-sm font-semibold" : "line-clamp-2 text-sm font-semibold leading-snug"}>
+          {recipe.name}
         </p>
+        {!compact && (
+          <p className="flex items-center gap-3 text-xs text-white/65">
+            {recipe.totalTime && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="size-3" />
+                {recipe.totalTime}
+              </span>
+            )}
+            {recipe.rating != null && (
+              <span className="inline-flex items-center gap-1">
+                <Star className="size-3 fill-amber-300 text-amber-300" />
+                {recipe.rating.toFixed(1)}
+              </span>
+            )}
+          </p>
+        )}
       </div>
     </Link>
   );

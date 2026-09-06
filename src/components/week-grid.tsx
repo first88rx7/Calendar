@@ -67,7 +67,7 @@ export function WeekGrid({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className={compact ? "mb-2 flex flex-wrap items-center gap-2" : "mb-3 flex flex-wrap items-center gap-2"}>
         <h2 className="flex items-center gap-2 text-lg font-semibold">Family Calendar</h2>
         <div className="ml-auto flex items-center gap-2">
           {onToday && (
@@ -95,7 +95,7 @@ export function WeekGrid({
           className="grid min-h-full"
           style={{
             gridTemplateColumns: `3.2rem repeat(${days.length}, minmax(0, 1fr))`,
-            gridTemplateRows: `auto auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.6rem" : "3.1rem"}, 1fr))`,
+            gridTemplateRows: `auto auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.15rem" : "3.1rem"}, 1fr))`,
           }}
         >
           <div />

@@ -136,7 +136,7 @@
   }
   html,
   body {
-    min-height: 100dvh;
+    height: 100dvh;
   }
   button,
   a,

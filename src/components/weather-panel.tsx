@@ -50,7 +50,7 @@ export function WeatherPanel({
   const week = weather.daily.slice(0, 7);
 
   return (
-    <div className="flex h-full min-h-0 flex-col p-5">
+    <div className="flex h-full min-h-0 flex-col p-4">
       <p className="flex items-center gap-1.5 text-sm text-white/65">
         <MapPin className="size-3.5" />
         {locationLabel}

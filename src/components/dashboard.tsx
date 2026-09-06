@@ -8,7 +8,6 @@ import { WeatherPanel } from "@/components/weather-panel";
 import { WeekGrid } from "@/components/week-grid";
 import { greeting, shiftDateKey, todayKey, toDateTimeLocal, weekKeys } from "@/lib/time";
 import type { CalendarEvent, DashboardPayload } from "@/lib/types";
-import { CloudSun } from "lucide-react";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardPayload | null>(null);
@@ -100,64 +99,56 @@ export function Dashboard() {
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:p-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3 lg:h-full lg:overflow-hidden lg:p-4">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight lg:text-3xl">
             {greeting(timezone, now)}, {data.config.familyName}!
           </h1>
-          <p className="mt-1 text-white/65">{dateLabel}</p>
+          <p className="text-sm text-white/65">{dateLabel}</p>
         </div>
-        <div className="text-right">
-          <p className="text-4xl font-semibold tracking-tight lg:text-5xl">{clock}</p>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-white/70">
-            <CloudSun className="size-4" />
-            Have a great day!
-          </p>
-        </div>
+        <p className="text-3xl font-semibold tracking-tight lg:text-4xl">{clock}</p>
       </header>
 
-      {error && <p className="rounded-xl bg-red-500/20 px-3 py-2 text-sm">{error}</p>}
+      {error && <p className="shrink-0 rounded-xl bg-red-500/20 px-3 py-2 text-sm">{error}</p>}
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <GlassCard className="flex min-h-0 flex-1 flex-col p-4">
-            <WeekGrid
-              days={days}
-              today={today}
-              events={data.events}
-              meals={data.meals}
-              people={data.config.people}
-              timeZone={timezone}
-              compact
-              onToday={() => setWeekStart(today)}
-              onDay={(day) => setSheet({ open: true, day, view: "day" })}
-              onEvent={(event: CalendarEvent) =>
-                setSheet({
-                  open: true,
-                  day: event.allDay
-                    ? event.startIso.slice(0, 10)
-                    : toDateTimeLocal(event.startIso, timezone).slice(0, 10),
-                  event,
-                  view: "form",
-                })
-              }
-              onAdd={(day) => setSheet({ open: true, day, view: "form" })}
-              onPrev={() => setWeekStart(shiftDateKey(days[0], -7))}
-              onNext={() => setWeekStart(shiftDateKey(days[0], 7))}
-            />
-          </GlassCard>
-          <GlassCard>
-            <RecipeStrip recipes={data.recipes} />
-          </GlassCard>
-        </div>
-        <GlassCard className="min-h-[28rem]">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)_auto]">
+        <GlassCard className="flex min-h-0 flex-col overflow-hidden p-3 lg:row-start-1">
+          <WeekGrid
+            days={days}
+            today={today}
+            events={data.events}
+            meals={data.meals}
+            people={data.config.people}
+            timeZone={timezone}
+            compact
+            onToday={() => setWeekStart(today)}
+            onDay={(day) => setSheet({ open: true, day, view: "day" })}
+            onEvent={(event: CalendarEvent) =>
+              setSheet({
+                open: true,
+                day: event.allDay
+                  ? event.startIso.slice(0, 10)
+                  : toDateTimeLocal(event.startIso, timezone).slice(0, 10),
+                event,
+                view: "form",
+              })
+            }
+            onAdd={(day) => setSheet({ open: true, day, view: "form" })}
+            onPrev={() => setWeekStart(shiftDateKey(days[0], -7))}
+            onNext={() => setWeekStart(shiftDateKey(days[0], 7))}
+          />
+        </GlassCard>
+        <GlassCard className="min-h-0 overflow-hidden max-lg:min-h-[22rem] lg:col-start-2 lg:row-span-2">
           <WeatherPanel
             weather={data.weather}
             locationLabel={data.config.weather.locationLabel}
             onRefresh={() => void load(start, true)}
             refreshing={refreshing}
           />
+        </GlassCard>
+        <GlassCard className="shrink-0 overflow-hidden lg:col-start-1 lg:row-start-2">
+          <RecipeStrip recipes={data.recipes} compact />
         </GlassCard>
       </div>
 

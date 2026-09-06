@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <IdleDim>
-      <div className="flex min-h-[100dvh]">
+      <div className="flex h-full overflow-hidden">
         <aside
           className={cn(
             "glass sticky top-0 hidden h-[100dvh] shrink-0 flex-col rounded-none border-y-0 border-l-0 transition-[width] duration-200 lg:flex",
@@ -131,8 +131,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-3 p-3 lg:hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center gap-3 p-3 lg:hidden">
             <button
               type="button"
               className="glass flex size-12 items-center justify-center rounded-2xl"
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Menu className="size-5" />
             </button>
           </div>
-          <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
         </div>
       </div>
     </IdleDim>

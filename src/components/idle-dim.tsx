@@ -103,11 +103,11 @@ export function IdleDim({ children }: { children: React.ReactNode }) {
 
   return (
     <IdleDimContext.Provider value={{ dimmed, dimNow, wake }}>
-      <div className="relative min-h-[100dvh]">
+      <div className="relative h-[100dvh] overflow-hidden">
         <PhotoBackdrop dimmed={dimmed} />
         <div
           className={cn(
-            "relative z-10",
+            "relative z-10 h-full",
             dimmed && "invisible pointer-events-none opacity-0",
           )}
           aria-hidden={dimmed}

@@ -35,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col text-foreground">
+      <body className="flex h-full flex-col overflow-hidden text-foreground">
         <ThemeProvider>
           <AppShell>{children}</AppShell>
           <Toaster theme="dark" />

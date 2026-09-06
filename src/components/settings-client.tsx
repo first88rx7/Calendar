@@ -575,7 +575,8 @@ export function SettingsClient() {
           <p className="text-sm text-muted-foreground">
             Use the id from the PhotoPrism album URL, for example{" "}
             <span className="text-foreground">atkwzfah1bh8tz5w</span> in
-            /library/albums/atkwzfah1bh8tz5w/view. A full URL is also accepted.
+            /library/albums/atkwzfah1bh8tz5w/view. Folders work too — the wall looks up
+            that album and searches by its folder path. A full URL is also accepted.
           </p>
         </div>
         <div className="space-y-2">

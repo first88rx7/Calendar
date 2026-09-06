@@ -130,11 +130,21 @@ export function readConfig(): AppConfig {
   if (envRuntime("PHOTO_ROTATE_SEC")) {
     merged.photoRotateSec = clamp(Number(envRuntime("PHOTO_ROTATE_SEC")), 10, 600);
   }
-  if (envRuntime("PHOTOPRISM_URL")) merged.photoPrism.url = envRuntime("PHOTOPRISM_URL")!;
-  if (envRuntime("PHOTOPRISM_USER")) merged.photoPrism.username = envRuntime("PHOTOPRISM_USER")!;
-  if (envRuntime("PHOTOPRISM_PASSWORD")) merged.photoPrism.password = envRuntime("PHOTOPRISM_PASSWORD")!;
-  if (envRuntime("PHOTOPRISM_ALBUM")) merged.photoPrism.albumUid = envRuntime("PHOTOPRISM_ALBUM")!;
-  if (envRuntime("PHOTOPRISM_QUERY")) merged.photoPrism.query = envRuntime("PHOTOPRISM_QUERY")!;
+  if (envRuntime("PHOTOPRISM_URL") && !fileConfig.photoPrism?.url) {
+    merged.photoPrism.url = envRuntime("PHOTOPRISM_URL")!;
+  }
+  if (envRuntime("PHOTOPRISM_USER") && !fileConfig.photoPrism?.username) {
+    merged.photoPrism.username = envRuntime("PHOTOPRISM_USER")!;
+  }
+  if (envRuntime("PHOTOPRISM_PASSWORD") && !fileConfig.photoPrism?.password) {
+    merged.photoPrism.password = envRuntime("PHOTOPRISM_PASSWORD")!;
+  }
+  if (envRuntime("PHOTOPRISM_ALBUM") && !fileConfig.photoPrism?.albumUid) {
+    merged.photoPrism.albumUid = envRuntime("PHOTOPRISM_ALBUM")!;
+  }
+  if (envRuntime("PHOTOPRISM_QUERY") && !fileConfig.photoPrism?.query) {
+    merged.photoPrism.query = envRuntime("PHOTOPRISM_QUERY")!;
+  }
 
   merged.sleepDimPercent = clamp(merged.sleepDimPercent, 40, 95);
   merged.photoRotateSec = clamp(merged.photoRotateSec, 10, 600);
@@ -160,11 +170,11 @@ export function mealieConfigured() {
 export function photoPrismSettings(): PhotoPrismConfig & { token: string } {
   const config = readConfig();
   return {
-    url: normalizePhotoPrismUrl(process.env.PHOTOPRISM_URL || config.photoPrism.url || ""),
-    username: process.env.PHOTOPRISM_USER || config.photoPrism.username || "",
-    password: process.env.PHOTOPRISM_PASSWORD || config.photoPrism.password || "",
-    albumUid: extractAlbumUid(process.env.PHOTOPRISM_ALBUM || config.photoPrism.albumUid || ""),
-    query: process.env.PHOTOPRISM_QUERY || config.photoPrism.query || "",
+    url: normalizePhotoPrismUrl(config.photoPrism.url || process.env.PHOTOPRISM_URL || ""),
+    username: config.photoPrism.username || process.env.PHOTOPRISM_USER || "",
+    password: config.photoPrism.password || process.env.PHOTOPRISM_PASSWORD || "",
+    albumUid: extractAlbumUid(config.photoPrism.albumUid || process.env.PHOTOPRISM_ALBUM || ""),
+    query: config.photoPrism.query || process.env.PHOTOPRISM_QUERY || "",
     token: process.env.PHOTOPRISM_TOKEN || "",
   };
 }

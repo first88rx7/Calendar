@@ -146,45 +146,105 @@ function photoType(photo: PhotoPrismPhoto) {
   return (photo.Type || photo.type || "image").toLowerCase();
 }
 
-function photoSearchAttempts() {
+type PhotoPrismAlbum = {
+  UID?: string;
+  uid?: string;
+  Type?: string;
+  type?: string;
+  Path?: string;
+  path?: string;
+  Title?: string;
+  title?: string;
+  Filter?: string;
+  filter?: string;
+  Slug?: string;
+  slug?: string;
+};
+
+async function loadAlbum(session: SessionCache, uid: string): Promise<PhotoPrismAlbum | null> {
+  const response = await photoprismFetch(`/api/v1/albums/${encodeURIComponent(uid)}`, {
+    token: session.token || undefined,
+  });
+  if (response.status === 401 && session.token) {
+    sessionCache = null;
+    const retrySession = await getSession(true);
+    session.token = retrySession.token;
+    session.previewToken = retrySession.previewToken || session.previewToken;
+    const retry = await photoprismFetch(`/api/v1/albums/${encodeURIComponent(uid)}`, {
+      token: retrySession.token || undefined,
+    });
+    if (!retry.ok) return null;
+    return (await retry.json()) as PhotoPrismAlbum;
+  }
+  if (!response.ok) return null;
+  return (await response.json()) as PhotoPrismAlbum;
+}
+
+function photoSearchAttempts(album: PhotoPrismAlbum | null) {
   const settings = resolvedSettings();
-  const album = settings.albumUid;
+  const uid = settings.albumUid;
   const query = settings.query.trim();
   const attempts: URLSearchParams[] = [];
+  const seen = new Set<string>();
 
   const make = (extra: Record<string, string>) => {
     const params = new URLSearchParams({
       count: "24",
       offset: "0",
-      order: "random",
+      order: "newest",
       merged: "true",
       ...extra,
     });
+    const key = params.toString();
+    if (seen.has(key)) return;
+    seen.add(key);
     attempts.push(params);
   };
 
-  // Folder albums store a path filter. Extra q=type:image on top of s=<uid>
-  // makes PhotoPrism return 400 ("unable to do that" / bad filter).
-  if (album && query) {
-    make({ s: album, q: query });
-    make({ q: `${query} album:${album}` });
-  } else if (album) {
-    make({ s: album });
-    make({ album });
-    make({ q: `album:${album}` });
+  if (album) {
+    const path = (album.Path || album.path || "").trim();
+    const filter = (album.Filter || album.filter || "").trim();
+    const title = (album.Title || album.title || "").trim();
+    const type = (album.Type || album.type || "").toLowerCase();
+    // Folder / calendar albums are virtual. PhotoPrism 400s if we pass s=<uid>
+    // with order=random. Search by path/filter instead; shuffle locally.
+    if (path) {
+      make({ path });
+      make({ q: query ? `${query} path:"${path}"` : `path:"${path}"` });
+    }
+    if (filter) {
+      make({ q: query ? `${query} ${filter}` : filter });
+    }
+    if (type === "album" || (!path && !filter)) {
+      make({ s: uid });
+    }
+    if (title) {
+      make({ q: query ? `${query} album:"${title}"` : `album:"${title}"` });
+    }
+  } else if (uid) {
+    make({ s: uid });
+    make({ q: query ? `${query} album:${uid}` : `album:${uid}` });
+    make({ album: uid });
   } else if (query) {
     make({ q: query });
   } else {
     make({});
-    make({ q: "type:image" });
   }
 
   return attempts;
 }
 
 async function searchPhotos(session: SessionCache) {
-  let lastMessage = "PhotoPrism photos failed";
-  for (const params of photoSearchAttempts()) {
+  const uid = resolvedSettings().albumUid;
+  const album = uid ? await loadAlbum(session, uid) : null;
+  let lastMessage = uid
+    ? `PhotoPrism could not list album ${uid}`
+    : "PhotoPrism photos failed";
+  const attempts = photoSearchAttempts(album);
+  if (uid && !album && attempts.length === 0) {
+    throw new Error(`PhotoPrism album ${uid} was not found`);
+  }
+  for (const params of attempts) {
     const path = `/api/v1/photos?${params}`;
     let response = await photoprismFetch(path, { token: session.token || undefined });
     if (response.status === 401 && session.token) {

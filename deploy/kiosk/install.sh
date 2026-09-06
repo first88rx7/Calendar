@@ -8,32 +8,72 @@ if [[ "${EUID}" -eq 0 ]]; then
   exit 1
 fi
 
-HOUSEHOLD_URL="${1:-${HOUSEHOLD_URL:-http://192.168.1.10:3847}}"
 KIOSK_DIR="${HOME}/household-kiosk"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MEM_KB="$(awk '/MemTotal/ {print $2}' /proc/meminfo)"
+LOW_RAM=0
+if [[ "${MEM_KB}" -lt 900000 ]]; then
+  LOW_RAM=1
+fi
 
 mkdir -p "${KIOSK_DIR}"
 install -m 0755 "${SCRIPT_DIR}/kiosk.sh" "${KIOSK_DIR}/kiosk.sh"
+
+# Keep a URL already on disk unless this run passes one explicitly.
+if [[ -n "${1:-}" ]]; then
+  HOUSEHOLD_URL="$1"
+elif [[ -z "${HOUSEHOLD_URL:-}" && -f "${KIOSK_DIR}/url" ]]; then
+  HOUSEHOLD_URL="$(tr -d '[:space:]' < "${KIOSK_DIR}/url")"
+fi
+HOUSEHOLD_URL="${HOUSEHOLD_URL:-http://192.168.1.10:3847}"
 printf '%s\n' "${HOUSEHOLD_URL}" > "${KIOSK_DIR}/url"
 
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    xserver-xorg x11-xserver-utils xinit openbox unclutter fonts-noto-color-emoji
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y chromium \
-    || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y chromium-browser \
+    fonts-noto-color-emoji \
+    xserver-xorg x11-xserver-utils xinit openbox unclutter || true
+  # Cog is the 512MB browser. Chromium on a Zero 2 often OOMs on reload
+  # and --platform=fdo will not paint under X11 (blank Openbox).
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cog \
     || true
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cog || true
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    libwpebackend-fdo-1.0-1 libwpe-1.0-1 \
+    || true
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cage \
+    || true
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y epiphany-browser \
+    || true
+  if [[ "${LOW_RAM}" -eq 0 ]]; then
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y chromium \
+      || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y chromium-browser \
+      || true
+  fi
 fi
 
-if ! command -v chromium >/dev/null 2>&1 \
+if ! command -v cog >/dev/null 2>&1 \
+  && ! command -v chromium >/dev/null 2>&1 \
   && ! command -v chromium-browser >/dev/null 2>&1 \
-  && ! command -v cog >/dev/null 2>&1; then
-  echo "Could not install Chromium or Cog. Check apt sources and try again." >&2
+  && ! command -v epiphany >/dev/null 2>&1; then
+  echo "Could not install Cog, Chromium, or Epiphany. Check apt sources and try again." >&2
   exit 1
 fi
 
-if [[ ! -f /swapfile ]] && [[ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -lt 750000 ]]; then
+if [[ "${LOW_RAM}" -eq 1 ]] && command -v cog >/dev/null 2>&1; then
+  printf 'cog\n' > "${KIOSK_DIR}/browser"
+elif command -v chromium >/dev/null 2>&1; then
+  printf 'chromium\n' > "${KIOSK_DIR}/browser"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  printf 'chromium-browser\n' > "${KIOSK_DIR}/browser"
+elif command -v cog >/dev/null 2>&1; then
+  printf 'cog\n' > "${KIOSK_DIR}/browser"
+else
+  printf 'epiphany\n' > "${KIOSK_DIR}/browser"
+fi
+
+sudo usermod -aG video,render,input "${USER}" 2>/dev/null || true
+
+if [[ ! -f /swapfile ]] && [[ "${MEM_KB}" -lt 750000 ]]; then
   echo "Creating a 512MB swap file for 512MB boards..."
   sudo fallocate -l 512M /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=512
   sudo chmod 600 /swapfile
@@ -45,8 +85,9 @@ if [[ ! -f /swapfile ]] && [[ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -lt
 fi
 
 mkdir -p "${HOME}/.config/openbox"
+SAVED_URL="$(tr -d '[:space:]' < "${KIOSK_DIR}/url")"
 cat > "${HOME}/.config/openbox/autostart" <<EOF
-export HOUSEHOLD_URL="${HOUSEHOLD_URL}"
+export HOUSEHOLD_URL="${SAVED_URL}"
 "${KIOSK_DIR}/kiosk.sh" &
 EOF
 
@@ -83,15 +124,18 @@ if command -v raspi-config >/dev/null 2>&1; then
   else
     sudo raspi-config nonint do_boot_behaviour B2 || true
   fi
+  sudo raspi-config nonint do_blanking 1 || true
 fi
 
-# Lite: after console autologin on tty1, start X. SSH is not tty1, so it stays a shell.
-STARTX_SNIPPET='
-# Household kiosk: start a bare X session on the attached display only.
+# Lite: tty1 runs the launcher. Cog uses DRM on the VT (no X). Chromium still
+# starts X from kiosk.sh. SSH is not tty1, so it stays a shell.
+KIOSK_SNIPPET='
+# Household kiosk: launch on the attached display only.
 if [ -z "${DISPLAY:-}" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
-  exec startx -- -nocursor
+  exec "${HOME}/household-kiosk/kiosk.sh"
 fi
 '
+
 if [[ -f "${HOME}/.bash_profile" ]]; then
   PROFILE_FILE="${HOME}/.bash_profile"
 elif [[ -f "${HOME}/.profile" ]]; then
@@ -100,9 +144,19 @@ else
   PROFILE_FILE="${HOME}/.profile"
   : > "${PROFILE_FILE}"
 fi
-if ! grep -q 'Household kiosk: start a bare X session' "${PROFILE_FILE}"; then
-  printf '\n%s\n' "${STARTX_SNIPPET}" >> "${PROFILE_FILE}"
+
+# Drop the previous startx-on-tty1 snippet so Cog is not trapped under X11.
+if grep -q 'Household kiosk:' "${PROFILE_FILE}"; then
+  tmp="$(mktemp)"
+  awk '
+    /Household kiosk:/ {skip=1}
+    skip && /^fi$/ {skip=0; next}
+    skip {next}
+    {print}
+  ' "${PROFILE_FILE}" > "${tmp}"
+  mv "${tmp}" "${PROFILE_FILE}"
 fi
+printf '\n%s\n' "${KIOSK_SNIPPET}" >> "${PROFILE_FILE}"
 
 # Older installs enabled a user unit that could launch a second browser. Drop it.
 systemctl --user disable --now household-kiosk.service 2>/dev/null || true
@@ -116,16 +170,21 @@ for config in /boot/firmware/config.txt /boot/config.txt; do
   fi
 done
 
+BROWSER_NAME="$(tr -d '[:space:]' < "${KIOSK_DIR}/browser")"
 echo
 echo "Kiosk installed."
-echo "  Dashboard URL: ${HOUSEHOLD_URL}"
-echo "  Change later:  echo 'http://<server-ip>:3847' > ${KIOSK_DIR}/url && sudo reboot"
+echo "  Dashboard URL: $(tr -d '[:space:]' < "${KIOSK_DIR}/url")"
+echo "  Browser:       ${BROWSER_NAME}"
+echo "  Change URL:    echo 'http://<server-ip>:3847' > ${KIOSK_DIR}/url && sudo reboot"
+echo "  Logs:          ${KIOSK_DIR}/kiosk.log"
 echo
-echo "Reboot the Pi. It should boot straight into the household week view:"
-echo "  no desktop, no address bar, no taskbar."
-echo
-echo "If Chromium is too slow on a Zero, install Cog and reboot:"
-echo "  sudo apt-get install -y cog"
-echo "  HOUSEHOLD_BROWSER=cog  is used automatically if Chromium is missing."
+if [[ "${BROWSER_NAME}" == "cog" ]]; then
+  echo "Cog draws on the HDMI VT (no X, no address bar). A blank screen after"
+  echo "only removing Chromium was the old Wayland Cog flag under X11 — this"
+  echo "install replaces that. Reboot when ready."
+else
+  echo "Reboot the Pi. It should boot straight into the household week view:"
+  echo "  no desktop, no address bar, no taskbar."
+fi
 echo
 echo "Do not run Docker or Node for this app on the Pi. The home server hosts it."

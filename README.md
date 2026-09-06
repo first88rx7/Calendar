@@ -118,7 +118,7 @@ Open-Meteo is used by default. Set latitude, longitude, timezone, and `fahrenhei
 
 Do not run this Node app on the 512MB board. The Pi only opens a fullscreen browser at the home-server URL.
 
-**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. The installer turns it into a kiosk: console autologin → bare X/Openbox → Chromium `--kiosk`, so the panel shows this app and nothing else. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub. SSH in and `git clone` this repo — you do not need to copy files from Windows.
+**OS:** [Raspberry Pi OS Lite (64-bit)](https://www.raspberrypi.com/software/) on a Raspberry Pi Zero 2 or Zero 2 W (same board — early ones omit the **W** on the silk). That is the Lite image in Raspberry Pi Imager — not the desktop image. On 512MB the installer uses Cog (no address bar, no X desktop). Chromium is the fallback on boards with more RAM. The radio is 2.4 GHz only; or use USB Ethernet on the powered hub. SSH in and `git clone` this repo — you do not need to copy files from Windows.
 
 Step-by-step (Imager settings, wiring, `git clone`, Cog fallback) is in [deploy/kiosk/README.md](deploy/kiosk/README.md).
 

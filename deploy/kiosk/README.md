@@ -8,13 +8,13 @@ Use **Raspberry Pi OS Lite (64-bit)** on a **Raspberry Pi Zero 2** / **Zero 2 W*
 
 Raspberry Pi never sold a Zero 2 without radios. Early boards are silkscreened “Raspberry Pi Zero 2” with no **W**; later ones say “Zero 2 W”. Same chip, same 2.4 GHz Wi-Fi, same image. In Imager, pick **Raspberry Pi Zero 2 W**.
 
-That is the Lite image in [Raspberry Pi Imager](https://www.raspberrypi.com/software/) — not “Raspberry Pi OS (desktop)”, and not the 32-bit image. Lite has no PIXEL desktop; the installer adds a tiny X session whose only job is the dashboard.
+That is the Lite image in [Raspberry Pi Imager](https://www.raspberrypi.com/software/) — not “Raspberry Pi OS (desktop)”, and not the 32-bit image. Lite has no PIXEL desktop. On 512MB boards the installer uses Cog on the HDMI console; Chromium gets a tiny X session on boards with more RAM.
 
 | Board | OS | Browser |
 | --- | --- | --- |
-| Raspberry Pi Zero 2 / Zero 2 W (preferred) | Raspberry Pi OS Lite **64-bit** | Chromium kiosk; install Cog if it is too slow |
+| Raspberry Pi Zero 2 / Zero 2 W (preferred) | Raspberry Pi OS Lite **64-bit** | Cog (WPE). Chromium is too tight on 512MB |
 | Original Raspberry Pi Zero / Zero W | Raspberry Pi OS Lite **32-bit** | Cog (WPE). Chromium is usually too heavy |
-| Banana Pi M2 Zero v1.0 | Armbian (Jammy/Bookworm CLI) | Chromium or Cog; fit the external Wi-Fi antenna |
+| Banana Pi M2 Zero v1.0 | Armbian (Jammy/Bookworm CLI) | Cog or Chromium; fit the external Wi-Fi antenna |
 
 Do **not** install Raspberry Pi OS with desktop. You would get a taskbar and file manager, and 512MB of RAM is already tight.
 
@@ -87,13 +87,13 @@ sudo reboot
 
 The installer:
 
-- installs X, Openbox, and Chromium (Cog if Chromium is missing)
+- on 512MB boards, installs **Cog** (WPE) as the kiosk browser and does not pull Chromium
+- on larger boards, installs Chromium kiosk plus Cog as a fallback
 - adds 512MB swap on 512MB boards
-- logs the user in on the console and starts a bare X session
-- launches Chromium with `--kiosk --app=…` so only the dashboard is visible
-- hides the pointer after a couple of seconds
+- logs the user in on the console
+- Cog draws on the HDMI VT (DRM or Cage) with no desktop and no address bar; Chromium still uses a bare X session
 - turns off screen blanking
-- restarts the browser if it crashes
+- restarts the browser if it crashes (see `~/household-kiosk/kiosk.log`)
 
 After reboot you should see the household week view and nothing else.
 
@@ -104,15 +104,25 @@ echo 'http://192.168.1.10:3847' > ~/household-kiosk/url
 sudo reboot
 ```
 
-## If Chromium is too slow
+## If Chromium is too slow or hangs on reload
 
-On a Zero 2 this is uncommon; on an original Zero it is expected.
+A Zero 2 has 512MB. Chromium often warns about running under 1GB and can freeze when the page reloads. Use Cog instead — but **re-run `install.sh`**. Only removing Chromium leaves the old X11 session running Cog with a Wayland flag, which is a **blank screen**.
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y cog
-# remove Chromium so the launcher picks Cog
-sudo apt-get remove -y chromium chromium-browser || true
+cd ~/Calendar/deploy/kiosk   # or wherever you cloned the repo
+git pull --ff-only origin main
+chmod +x install.sh kiosk.sh
+# keeps the URL already in ~/household-kiosk/url
+./install.sh
+sudo reboot
+```
+
+SSH in and `tail -f ~/household-kiosk/kiosk.log` if the panel is still blank after that reboot.
+
+To go back to Chromium on a bigger board:
+
+```bash
+echo chromium > ~/household-kiosk/browser
 sudo reboot
 ```
 

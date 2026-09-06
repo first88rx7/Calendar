@@ -47,7 +47,7 @@ export function WeatherPanel({
   const unit = weather.unit === "celsius" ? "C" : "F";
   const today = weather.daily[0];
   const hourly = pickHourly(weather);
-  const upcoming = weather.daily.slice(1, 6);
+  const week = weather.daily.slice(0, 7);
 
   return (
     <div className="flex h-full min-h-0 flex-col p-5">
@@ -83,10 +83,17 @@ export function WeatherPanel({
       )}
 
       <ul className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto">
-        {upcoming.map((day) => (
-          <li key={day.date} className="flex items-center gap-3 text-sm">
-            <span className="w-10 text-white/65">{weekdayShort(day.date, weather.timezone)}</span>
-            <WeatherGlyph code={day.weatherCode} className="size-4" />
+        {week.map((day, index) => (
+          <li key={day.date} className="flex items-center gap-2 text-sm">
+            <span className="w-11 shrink-0 text-white/65">
+              {index === 0 ? "Today" : weekdayShort(day.date, weather.timezone)}
+            </span>
+            <WeatherGlyph code={day.weatherCode} className="size-4 shrink-0" />
+            {day.precipitationProbability != null && (
+              <span className="w-9 shrink-0 text-xs text-sky-200/80">
+                {day.precipitationProbability}%
+              </span>
+            )}
             <span className="ml-auto text-white/80">
               {day.tempMax}° / {day.tempMin}°
             </span>

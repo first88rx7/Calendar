@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { contrastText } from "@/lib/color";
+import { entryTypeLabel } from "@/lib/media";
 import {
   dayNumber,
   eventTouchesDay,
@@ -11,7 +12,9 @@ import {
   weekdayShort,
 } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import type { CalendarEvent, Person } from "@/lib/types";
+import type { CalendarEvent, MealEntry, Person } from "@/lib/types";
+
+const MEAL_CHIP = "#C26A3A";
 
 const SLOTS = [8, 10, 12, 14, 16, 18, 20];
 
@@ -35,6 +38,7 @@ export function WeekGrid({
   days,
   today,
   events,
+  meals = [],
   people,
   timeZone,
   onDay,
@@ -48,6 +52,7 @@ export function WeekGrid({
   days: string[];
   today: string;
   events: CalendarEvent[];
+  meals?: MealEntry[];
   people: Person[];
   timeZone: string;
   onDay: (day: string) => void;
@@ -90,7 +95,7 @@ export function WeekGrid({
           className="grid min-h-full"
           style={{
             gridTemplateColumns: `3.2rem repeat(${days.length}, minmax(0, 1fr))`,
-            gridTemplateRows: `auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.6rem" : "3.1rem"}, 1fr))`,
+            gridTemplateRows: `auto auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.6rem" : "3.1rem"}, 1fr))`,
           }}
         >
           <div />
@@ -144,6 +149,35 @@ export function WeekGrid({
                   ))}
                 </div>
               </div>
+            );
+          })}
+
+          <div className="pr-2 pt-1 text-right text-[0.65rem] font-medium uppercase tracking-wide text-white/45">
+            Meals
+          </div>
+          {days.map((day) => {
+            const dayMeals = meals.filter((meal) => meal.date === day);
+            return (
+              <button
+                key={`meal-${day}`}
+                type="button"
+                className="min-h-10 border-t border-white/8 px-1 py-1 text-left"
+                onClick={() => onDay(day)}
+              >
+                <div className="flex flex-col gap-1">
+                  {dayMeals.map((meal) => (
+                    <span
+                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
+                      className="block rounded-lg px-2 py-1 leading-tight"
+                      style={{ backgroundColor: MEAL_CHIP, color: contrastText(MEAL_CHIP) }}
+                    >
+                      <span className="block truncate text-[0.78rem] font-semibold">
+                        {entryTypeLabel(meal.entryType)} · {meal.title}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </button>
             );
           })}
 

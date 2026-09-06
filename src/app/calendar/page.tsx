@@ -26,6 +26,7 @@ export default function CalendarPage() {
           days={days}
           today={today}
           events={data.events}
+          meals={data.meals}
           people={data.config.people}
           timeZone={timezone}
           onToday={() => setWeekStart(today)}
@@ -49,6 +50,7 @@ export default function CalendarPage() {
         state={sheet}
         onClose={() => setSheet({ open: false })}
         events={data.events}
+        meals={data.meals}
         people={data.config.people}
         timeZone={timezone}
         onChanged={() => load(start, true)}

@@ -1,9 +1,58 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Clock, Heart, Star } from "lucide-react";
 import { mediaSrc } from "@/lib/media";
 import type { RecipeSummary } from "@/lib/types";
 
+const VISIBLE = 5;
+const ROTATE_MS = 45_000;
+
+function poolKey(recipes: RecipeSummary[]) {
+  return recipes
+    .map((recipe) => recipe.id)
+    .sort()
+    .join("|");
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function pickVisible(pool: RecipeSummary[], previousIds: string[] = []): RecipeSummary[] {
+  if (pool.length <= VISIBLE) return pool;
+  const previous = new Set(previousIds);
+  const shuffled = shuffle(pool);
+  const fresh = shuffled.filter((recipe) => !previous.has(recipe.id));
+  const reused = shuffled.filter((recipe) => previous.has(recipe.id));
+  return [...fresh, ...reused].slice(0, VISIBLE);
+}
+
 export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
+  const fingerprint = useMemo(() => poolKey(recipes), [recipes]);
+  const poolRef = useRef(recipes);
+  poolRef.current = recipes;
+
+  const [visible, setVisible] = useState<RecipeSummary[]>(() => pickVisible(recipes));
+
+  useEffect(() => {
+    setVisible(pickVisible(poolRef.current));
+  }, [fingerprint]);
+
+  useEffect(() => {
+    if (recipes.length <= VISIBLE) return;
+    const id = window.setInterval(() => {
+      setVisible((current) => pickVisible(poolRef.current, current.map((recipe) => recipe.id)));
+    }, ROTATE_MS);
+    return () => window.clearInterval(id);
+  }, [fingerprint, recipes.length]);
+
   return (
     <div className="p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -12,11 +61,11 @@ export function RecipeStrip({ recipes }: { recipes: RecipeSummary[] }) {
           View All Recipes →
         </Link>
       </div>
-      {recipes.length === 0 ? (
+      {visible.length === 0 ? (
         <p className="text-sm text-white/60">No recipes to show yet.</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-          {recipes.slice(0, 5).map((recipe) => (
+          {visible.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>

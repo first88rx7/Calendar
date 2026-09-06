@@ -487,8 +487,8 @@ export function SettingsClient() {
             className="h-8 w-full accent-white"
           />
           <p className="text-sm text-muted-foreground">
-            Lower keeps PhotoPrism photos visible behind the clock. Higher is closer to a black sleep
-            screen.
+            Sleep hides the dashboard so photos fill the panel. This slider only tints the clock
+            corner — higher makes the time easier to read, not a black screen.
           </p>
         </div>
         <label className="flex min-h-12 items-center justify-between gap-4 rounded-xl bg-white/5 px-3">

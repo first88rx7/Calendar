@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { PhotoBackdrop } from "@/components/photo-backdrop";
 import { formatClock, formatLongDate, isNightHours } from "@/lib/time";
 import { weatherLabel } from "@/lib/weather-copy";
+import { cn } from "@/lib/utils";
 import type { PublicConfig, WeatherPayload } from "@/lib/types";
 
 type IdleApi = {
@@ -65,6 +66,7 @@ export function IdleDim({ children }: { children: React.ReactNode }) {
         : configuredTimeout;
   const dimPercent = config?.sleepDimPercent ?? 78;
   const showClock = config?.sleepShowClock ?? true;
+  const vignette = Math.min(0.55, (dimPercent / 100) * 0.55);
 
   const wake = () => {
     setDimmed(false);
@@ -102,31 +104,44 @@ export function IdleDim({ children }: { children: React.ReactNode }) {
   return (
     <IdleDimContext.Provider value={{ dimmed, dimNow, wake }}>
       <div className="relative min-h-[100dvh]">
-        <PhotoBackdrop />
-        <div className="relative z-10">{children}</div>
+        <PhotoBackdrop dimmed={dimmed} />
+        <div
+          className={cn(
+            "relative z-10",
+            dimmed && "invisible pointer-events-none opacity-0",
+          )}
+          aria-hidden={dimmed}
+        >
+          {children}
+        </div>
         {dimmed && (
           <button
             type="button"
-            className="fixed inset-0 z-80 flex flex-col items-center justify-center text-center"
-            style={{ backgroundColor: `rgba(0, 0, 0, ${dimPercent / 100})` }}
+            className="fixed inset-0 z-80"
+            style={{
+              backgroundImage: `linear-gradient(to bottom left, rgba(0, 0, 0, ${vignette}) 0%, rgba(0, 0, 0, 0.08) 38%, transparent 58%)`,
+            }}
             onClick={() => wake()}
+            aria-label="Tap to wake"
           >
             {showClock && (
-              <>
-                <p className="text-7xl font-semibold tracking-tight text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.7)] md:text-8xl">
+              <div className="absolute top-5 right-6 text-right md:top-7 md:right-8">
+                <p className="text-5xl font-semibold tracking-tight text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.65)] md:text-6xl">
                   {formatClock(timezone, now)}
                 </p>
-                <p className="mt-3 text-2xl text-white/80 drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)]">
+                <p className="mt-1 text-base text-white/85 drop-shadow-[0_4px_14px_rgba(0,0,0,0.6)] md:text-lg">
                   {formatLongDate(timezone, now)}
                 </p>
                 {weather && (
-                  <p className="mt-6 text-xl text-white/75 drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)]">
+                  <p className="mt-1 text-base text-white/80 drop-shadow-[0_4px_14px_rgba(0,0,0,0.6)]">
                     {Math.round(weather.current.temperature)}° · {weatherLabel(weather.current.weatherCode)}
                   </p>
                 )}
-              </>
+              </div>
             )}
-            <p className="mt-10 text-sm uppercase tracking-[0.2em] text-white/55">Tap to wake</p>
+            <p className="absolute bottom-7 left-1/2 -translate-x-1/2 text-sm uppercase tracking-[0.2em] text-white/55">
+              Tap to wake
+            </p>
           </button>
         )}
       </div>

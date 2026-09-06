@@ -119,13 +119,14 @@ export function Dashboard() {
 
       {error && <p className="rounded-xl bg-red-500/20 px-3 py-2 text-sm">{error}</p>}
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-h-0 flex-col gap-4">
           <GlassCard className="flex min-h-0 flex-1 flex-col p-4">
             <WeekGrid
               days={days}
               today={today}
               events={data.events}
+              meals={data.meals}
               people={data.config.people}
               timeZone={timezone}
               compact
@@ -164,6 +165,7 @@ export function Dashboard() {
         state={sheet}
         onClose={() => setSheet({ open: false })}
         events={data.events}
+        meals={data.meals}
         people={data.config.people}
         timeZone={timezone}
         onChanged={() => load(start, true)}

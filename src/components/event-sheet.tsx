@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +25,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { contrastText } from "@/lib/color";
+import { entryTypeLabel } from "@/lib/media";
 import {
   eventTouchesDay,
   formatEventTime,
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/time";
-import type { CalendarEvent, EventWriteInput, Person } from "@/lib/types";
+import type { CalendarEvent, EventWriteInput, MealEntry, Person } from "@/lib/types";
 
 export type EventSheetState =
   | { open: false }
@@ -40,6 +42,7 @@ export function EventSheet({
   state,
   onClose,
   events,
+  meals = [],
   people,
   timeZone,
   onChanged,
@@ -47,6 +50,7 @@ export function EventSheet({
   state: EventSheetState;
   onClose: () => void;
   events: CalendarEvent[];
+  meals?: MealEntry[];
   people: Person[];
   timeZone: string;
   onChanged: () => Promise<void> | void;
@@ -64,6 +68,7 @@ export function EventSheet({
   const dayEvents = events.filter((event) =>
     day ? eventTouchesDay(event.startIso, event.endIso, event.allDay, day, timeZone) : false,
   );
+  const dayMeals = meals.filter((meal) => meal.date === day);
 
   return (
     <Sheet open={state.open} onOpenChange={(next) => !next && onClose()}>
@@ -81,13 +86,58 @@ export function EventSheet({
                   day: "numeric",
                 })}
               </SheetTitle>
-              <SheetDescription>Tap an event to edit, or add something new.</SheetDescription>
+              <SheetDescription>
+                Tap an event to edit. Meals come from Mealie and stay read-only here.
+              </SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 px-4">
               <div className="flex flex-col gap-2 pb-4">
-                {dayEvents.length === 0 && (
+                {dayEvents.length === 0 && dayMeals.length === 0 && (
                   <p className="rounded-xl bg-secondary px-4 py-6 text-muted-foreground">
                     Nothing on the calendar this day.
+                  </p>
+                )}
+                {dayMeals.length > 0 && (
+                  <p className="pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Meals
+                  </p>
+                )}
+                {dayMeals.map((meal) => {
+                  const body = (
+                    <>
+                      <p className="text-xs uppercase tracking-wide opacity-80">
+                        {entryTypeLabel(meal.entryType)}
+                      </p>
+                      <p className="text-lg font-medium">{meal.title}</p>
+                      {meal.recipeSlug && (
+                        <p className="text-sm opacity-80">Open recipe →</p>
+                      )}
+                    </>
+                  );
+                  const className = "rounded-xl px-4 py-3 text-left text-white";
+                  const style = { backgroundColor: "#C26A3A" };
+                  return meal.recipeSlug ? (
+                    <Link
+                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
+                      href={`/recipes?open=${meal.recipeSlug}`}
+                      className={className}
+                      style={style}
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div
+                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
+                      className={className}
+                      style={style}
+                    >
+                      {body}
+                    </div>
+                  );
+                })}
+                {dayEvents.length > 0 && (
+                  <p className="pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Events
                   </p>
                 )}
                 {dayEvents.map((event) => {

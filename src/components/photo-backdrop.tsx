@@ -8,7 +8,7 @@ import type { SlideshowPayload } from "@/lib/types";
 
 const FALLBACK = "/wallpaper.jpg";
 
-export function PhotoBackdrop() {
+export function PhotoBackdrop({ dimmed = false }: { dimmed?: boolean }) {
   const [urls, setUrls] = useState<string[]>([FALLBACK]);
   const [front, setFront] = useState(0);
   const [layers, setLayers] = useState<[string, string]>([FALLBACK, FALLBACK]);
@@ -80,15 +80,21 @@ export function PhotoBackdrop() {
           className="absolute inset-0 transition-opacity duration-1000"
           style={{ opacity: front === layer ? 1 : 0 }}
         >
+          {!dimmed && (
+            <img
+              src={src}
+              alt=""
+              className="absolute inset-0 size-full scale-125 object-cover blur-2xl"
+            />
+          )}
           <img
             src={src}
             alt=""
-            className="absolute inset-0 size-full scale-125 object-cover blur-2xl"
-          />
-          <img
-            src={src}
-            alt=""
-            className="absolute inset-0 size-full object-contain object-center"
+            className={
+              dimmed
+                ? "absolute inset-0 size-full object-cover object-center"
+                : "absolute inset-0 size-full object-contain object-center"
+            }
             onError={(event) => {
               if (event.currentTarget.src.endsWith(FALLBACK)) return;
               event.currentTarget.src = FALLBACK;
@@ -96,7 +102,9 @@ export function PhotoBackdrop() {
           />
         </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/28 via-black/40 to-black/58" />
+      {!dimmed && (
+        <div className="absolute inset-0 bg-gradient-to-b from-black/28 via-black/40 to-black/58" />
+      )}
     </div>
   );
 }

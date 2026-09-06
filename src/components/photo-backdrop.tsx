@@ -80,21 +80,15 @@ export function PhotoBackdrop({ dimmed = false }: { dimmed?: boolean }) {
           className="absolute inset-0 transition-opacity duration-1000"
           style={{ opacity: front === layer ? 1 : 0 }}
         >
-          {!dimmed && (
-            <img
-              src={src}
-              alt=""
-              className="absolute inset-0 size-full scale-125 object-cover blur-2xl"
-            />
-          )}
           <img
             src={src}
             alt=""
-            className={
-              dimmed
-                ? "absolute inset-0 size-full object-cover object-center"
-                : "absolute inset-0 size-full object-contain object-center"
-            }
+            className="absolute inset-0 size-full scale-125 object-cover blur-2xl"
+          />
+          <img
+            src={src}
+            alt=""
+            className="absolute inset-0 size-full object-contain object-center"
             onError={(event) => {
               if (event.currentTarget.src.endsWith(FALLBACK)) return;
               event.currentTarget.src = FALLBACK;

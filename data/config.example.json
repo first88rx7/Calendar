@@ -30,5 +30,8 @@
     "password": "",
     "albumUid": "",
     "query": ""
+  },
+  "hotLunch": {
+    "initials": ["I", "D"]
   }
 }

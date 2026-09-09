@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPublicConfig, readStoredConfig, writeConfig } from "@/lib/config";
 import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import { settingsUnlocked } from "@/lib/settings-auth";
+import { normalizeHotLunchInitials } from "@/lib/hot-lunch-marks";
 import type { AppConfig } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -33,6 +34,11 @@ export async function PUT(request: NextRequest) {
     })),
     weather: { ...current.weather, ...(patch.weather || {}) },
     mealie: { ...current.mealie, ...(patch.mealie || {}) },
+    hotLunch: {
+      initials: normalizeHotLunchInitials(
+        patch.hotLunch?.initials ?? current.hotLunch?.initials,
+      ),
+    },
     photoPrism: {
       ...current.photoPrism,
       ...(patch.photoPrism || {}),

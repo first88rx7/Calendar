@@ -92,6 +92,14 @@ function migrate(database: Database.Database) {
       meal_count INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (person_id, entry_type, year_month)
     );
+
+    CREATE TABLE IF NOT EXISTS hot_lunch (
+      date TEXT NOT NULL,
+      initial TEXT NOT NULL,
+      PRIMARY KEY (date, initial)
+    );
+
+    CREATE INDEX IF NOT EXISTS hot_lunch_date_idx ON hot_lunch (date);
   `);
 }
 

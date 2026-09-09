@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { getConfigPath } from "@/lib/paths";
 import { isGoogleConfigured, readOAuth } from "@/lib/google-store";
 import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
+import { normalizeHotLunchInitials } from "@/lib/hot-lunch-marks";
 import type { AppConfig, PhotoPrismConfig, PublicConfig } from "@/lib/types";
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -36,6 +37,9 @@ export const DEFAULT_CONFIG: AppConfig = {
     password: "",
     albumUid: "",
     query: "",
+  },
+  hotLunch: {
+    initials: ["I", "D"],
   },
 };
 
@@ -151,6 +155,9 @@ export function readConfig(): AppConfig {
   if (merged.idleTimeoutMs < 0) merged.idleTimeoutMs = 0;
   merged.photoPrism.url = normalizePhotoPrismUrl(merged.photoPrism.url);
   merged.photoPrism.albumUid = extractAlbumUid(merged.photoPrism.albumUid);
+  merged.hotLunch = {
+    initials: normalizeHotLunchInitials(merged.hotLunch?.initials),
+  };
 
   return merged;
 }
@@ -212,6 +219,9 @@ export function getPublicConfig(): PublicConfig {
     people: config.people,
     weather: config.weather,
     mealie: config.mealie,
+    hotLunch: {
+      initials: config.hotLunch?.initials?.length ? config.hotLunch.initials : ["I", "D"],
+    },
   };
   return {
     ...rest,

@@ -13,6 +13,7 @@ The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie
 - Open-Meteo weather (no API key)
 - Mealie meal plan + recipe search through the Mealie API
 - School breakfast and lunch PDFs (St. John's calendars and West Lutheran FACTS orders) on the week Meals row
+- St. John's hot lunch checkboxes for I and D on each day
 - An "Open Mealie" page with a back bar for shopping lists and planning
 - Demo data when Google or Mealie are not configured, so you can try the wall UI first
 - Idle dim / night clock, optional PhotoPrism background slideshow, kiosk install scripts, Docker Compose for the server
@@ -94,6 +95,7 @@ The wall pulls `GET /api/households/mealplans` and `GET /api/recipes`. Recipe ph
 Monthly breakfast and lunch PDFs are imported in **Settings → School menus**. They stay on the home server (the Pi is still just a kiosk) and show on the week **Meals** row next to Mealie dinners.
 
 - **St. John's Lutheran School** lunch and breakfast calendars: each school day becomes the entrée for that date. No-school days are skipped.
+- The week grid has a **Hot lunch** row with **I** and **D** (changeable in Settings). Tap an initial to mark that they want St. John's hot lunch that day — the same thing as checking the paper calendar. Marks are stored on the LXC, not the Pi.
 - **West Lutheran / FACTS** order PDFs: only the **blue** items that were ordered are imported, not the full list of choices. Days marked “No School Lunch being ordered” are skipped.
 
 Assign the PDF to a person so the chip uses their name and color (`Milo · Chick-Fil-A Sandwich`). Re-uploading the same person, breakfast/lunch, and month replaces that month. The PDF itself is not stored.

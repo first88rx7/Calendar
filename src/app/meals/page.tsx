@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { HotLunchToggles } from "@/components/hot-lunch-toggles";
 import { entryTypeLabel, mediaSrc } from "@/lib/media";
+import { saveHotLunchMark, withHotLunchMark } from "@/lib/hot-lunch-marks";
 import { rollingDays, shiftDateKey, todayKey, weekdayShort } from "@/lib/time";
 import type { DashboardPayload } from "@/lib/types";
 
@@ -25,6 +27,24 @@ export default function MealsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function toggleHotLunch(date: string, initial: string, wanted: boolean) {
+    setData((current) => {
+      if (!current?.hotLunch) return current;
+      return {
+        ...current,
+        hotLunch: {
+          ...current.hotLunch,
+          marks: withHotLunchMark(current.hotLunch.marks, date, initial, wanted),
+        },
+      };
+    });
+    try {
+      await saveHotLunchMark(date, initial, wanted);
+    } catch {
+      void load();
+    }
+  }
 
   const timezone = data?.config.weather.timezone || "America/Los_Angeles";
   const today = todayKey(timezone);
@@ -77,6 +97,20 @@ export default function MealsPage() {
                     : weekdayShort(day, timezone)}
                 <span className="ml-2 text-muted-foreground">{day.slice(5).replace("-", "/")}</span>
               </h2>
+              {data.hotLunch && (
+                <div className="mt-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Hot lunch</p>
+                  <div className="mt-2">
+                    <HotLunchToggles
+                      date={day}
+                      initials={data.hotLunch.initials}
+                      marks={data.hotLunch.marks}
+                      people={data.config.people}
+                      onToggle={(markDate, initial, wanted) => void toggleHotLunch(markDate, initial, wanted)}
+                    />
+                  </div>
+                </div>
+              )}
               {meals.length === 0 ? (
                 <p className="mt-4 text-sm text-muted-foreground">Nothing planned.</p>
               ) : (

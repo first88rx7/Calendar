@@ -64,6 +64,7 @@ export function SettingsClient() {
   const [menuFile, setMenuFile] = useState<File | null>(null);
   const [importingMenu, setImportingMenu] = useState(false);
   const [menuUploads, setMenuUploads] = useState<SchoolMenuUpload[]>([]);
+  const [hotLunchInitials, setHotLunchInitials] = useState("I, D");
 
   async function loadConfig() {
     const response = await fetch("/api/config", { cache: "no-store" });
@@ -98,6 +99,7 @@ export function SettingsClient() {
     if (!data.settingsPinRequired || data.settingsUnlocked) {
       void loadMenus();
     }
+    setHotLunchInitials((data.hotLunch?.initials || ["I", "D"]).join(", "));
     return data;
   }
 
@@ -178,6 +180,7 @@ export function SettingsClient() {
           albumUid: photoAlbum.trim(),
           query: photoQuery.trim(),
         },
+        hotLunch: { initials: hotLunchInitials.split(/[,\s/]+/) },
       }),
     });
     if (!response.ok) {
@@ -714,6 +717,20 @@ export function SettingsClient() {
           on the Meals row. West Lutheran FACTS PDFs import only the blue items that were ordered, not
           every option on the page. Re-uploading the same person, meal, and month replaces that month.
         </p>
+        <div className="space-y-2">
+          <Label htmlFor="hot-lunch">Hot lunch initials</Label>
+          <Input
+            id="hot-lunch"
+            className="h-12 text-base"
+            value={hotLunchInitials}
+            onChange={(event) => setHotLunchInitials(event.target.value)}
+            placeholder="I, D"
+          />
+          <p className="text-sm text-muted-foreground">
+            The week grid has an I and D checkbox for each day, same as marking the paper calendar for
+            St. John&apos;s hot lunch. Tap an initial to toggle. Save settings after you change the letters.
+          </p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Who this menu is for</Label>

@@ -7,6 +7,7 @@ import { RecipeStrip } from "@/components/recipe-strip";
 import { WeatherPanel } from "@/components/weather-panel";
 import { WeekGrid } from "@/components/week-grid";
 import { greeting, shiftDateKey, todayKey, toDateTimeLocal, weekKeys } from "@/lib/time";
+import { saveHotLunchMark, withHotLunchMark } from "@/lib/hot-lunch-marks";
 import type { CalendarEvent, DashboardPayload } from "@/lib/types";
 
 export function Dashboard() {
@@ -53,6 +54,24 @@ export function Dashboard() {
     },
     [weekStart],
   );
+
+  async function toggleHotLunch(date: string, initial: string, wanted: boolean) {
+    setData((current) => {
+      if (!current?.hotLunch) return current;
+      return {
+        ...current,
+        hotLunch: {
+          ...current.hotLunch,
+          marks: withHotLunchMark(current.hotLunch.marks, date, initial, wanted),
+        },
+      };
+    });
+    try {
+      await saveHotLunchMark(date, initial, wanted);
+    } catch {
+      void load(start, false);
+    }
+  }
 
   useEffect(() => {
     void load(start, false);
@@ -119,6 +138,8 @@ export function Dashboard() {
             today={today}
             events={data.events}
             meals={data.meals}
+            hotLunchInitials={data.hotLunch?.initials || ["I", "D"]}
+            hotLunchMarks={data.hotLunch?.marks || []}
             people={data.config.people}
             timeZone={timezone}
             compact
@@ -137,6 +158,7 @@ export function Dashboard() {
             onAdd={(day) => setSheet({ open: true, day, view: "form" })}
             onPrev={() => setWeekStart(shiftDateKey(days[0], -7))}
             onNext={() => setWeekStart(shiftDateKey(days[0], 7))}
+            onHotLunch={(date, initial, wanted) => void toggleHotLunch(date, initial, wanted)}
           />
         </GlassCard>
         <GlassCard className="min-h-0 overflow-hidden max-lg:min-h-[18rem] lg:col-start-2 lg:row-span-2">
@@ -157,9 +179,11 @@ export function Dashboard() {
         onClose={() => setSheet({ open: false })}
         events={data.events}
         meals={data.meals}
+        hotLunch={data.hotLunch}
         people={data.config.people}
         timeZone={timezone}
         onChanged={() => load(start, true)}
+        onHotLunch={(date, initial, wanted) => void toggleHotLunch(date, initial, wanted)}
       />
     </div>
   );

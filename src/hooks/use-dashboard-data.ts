@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { todayKey, weekKeys } from "@/lib/time";
+import { saveHotLunchMark, withHotLunchMark } from "@/lib/hot-lunch-marks";
 import type { DashboardPayload } from "@/lib/types";
 
 export function useDashboardData() {
@@ -47,11 +48,32 @@ export function useDashboardData() {
     [weekStart],
   );
 
+  const toggleHotLunch = useCallback(
+    async (date: string, initial: string, wanted: boolean) => {
+      setData((current) => {
+        if (!current?.hotLunch) return current;
+        return {
+          ...current,
+          hotLunch: {
+            ...current.hotLunch,
+            marks: withHotLunchMark(current.hotLunch.marks, date, initial, wanted),
+          },
+        };
+      });
+      try {
+        await saveHotLunchMark(date, initial, wanted);
+      } catch {
+        void load(start, false);
+      }
+    },
+    [load, start],
+  );
+
   useEffect(() => {
     void load(start, false);
     const id = window.setInterval(() => void load(start, false), 30_000);
     return () => window.clearInterval(id);
   }, [load, start]);
 
-  return { data, error, load, refreshing, weekStart, setWeekStart, days, today, timezone, start };
+  return { data, error, load, refreshing, weekStart, setWeekStart, days, today, timezone, start, toggleHotLunch };
 }

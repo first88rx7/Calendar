@@ -2,6 +2,7 @@ import { getPublicConfig } from "@/lib/config";
 import { listStoredEvents, mockRecipes, readWeatherCache, seedMockIfNeeded } from "@/lib/mock";
 import { listMeals, searchRecipes } from "@/lib/mealie";
 import { listSchoolMeals, sortMeals } from "@/lib/school-meals";
+import { hotLunchState } from "@/lib/hot-lunch";
 import { listSyncStatus } from "@/lib/sync-state";
 import { eventTouchesDay, shiftDateKey, weekKeys } from "@/lib/time";
 import type { DashboardPayload, RecipeSummary } from "@/lib/types";
@@ -30,6 +31,8 @@ export async function loadDashboard(from: string, to: string): Promise<Dashboard
   const mealFrom = from < today ? from : today;
   const mealHorizon = shiftDateKey(today, 6);
   const mealTo = to > mealHorizon ? to : mealHorizon;
+  const hotFrom = from < mealFrom ? from : mealFrom;
+  const hotTo = to > mealTo ? to : mealTo;
   let recipes: RecipeSummary[] = mockRecipes();
   try {
     recipes = await searchRecipes("");
@@ -44,6 +47,7 @@ export async function loadDashboard(from: string, to: string): Promise<Dashboard
     weather: readWeatherCache(),
     status: listSyncStatus(),
     range: { from, to },
+    hotLunch: hotLunchState(hotFrom, hotTo),
   };
 }
 

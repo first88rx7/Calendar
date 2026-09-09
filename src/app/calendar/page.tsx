@@ -9,7 +9,7 @@ import { shiftDateKey, toDateTimeLocal } from "@/lib/time";
 import type { CalendarEvent } from "@/lib/types";
 
 export default function CalendarPage() {
-  const { data, error, load, days, today, timezone, start, setWeekStart } = useDashboardData();
+  const { data, error, load, days, today, timezone, start, setWeekStart, toggleHotLunch } = useDashboardData();
   const [sheet, setSheet] = useState<EventSheetState>({ open: false });
 
   if (error && !data) {
@@ -27,6 +27,8 @@ export default function CalendarPage() {
           today={today}
           events={data.events}
           meals={data.meals}
+          hotLunchInitials={data.hotLunch?.initials || ["I", "D"]}
+          hotLunchMarks={data.hotLunch?.marks || []}
           people={data.config.people}
           timeZone={timezone}
           onToday={() => setWeekStart(today)}
@@ -44,6 +46,7 @@ export default function CalendarPage() {
           onAdd={(day) => setSheet({ open: true, day, view: "form" })}
           onPrev={() => setWeekStart(shiftDateKey(days[0], -7))}
           onNext={() => setWeekStart(shiftDateKey(days[0], 7))}
+          onHotLunch={(date, initial, wanted) => void toggleHotLunch(date, initial, wanted)}
         />
       </GlassCard>
       <EventSheet
@@ -51,9 +54,11 @@ export default function CalendarPage() {
         onClose={() => setSheet({ open: false })}
         events={data.events}
         meals={data.meals}
+        hotLunch={data.hotLunch}
         people={data.config.people}
         timeZone={timezone}
         onChanged={() => load(start, true)}
+        onHotLunch={(date, initial, wanted) => void toggleHotLunch(date, initial, wanted)}
       />
     </div>
   );

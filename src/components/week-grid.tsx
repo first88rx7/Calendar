@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { HotLunchToggles } from "@/components/hot-lunch-toggles";
 import { contrastText } from "@/lib/color";
 import { mealChipColor, mealChipLabel } from "@/lib/media";
 import {
@@ -12,7 +13,7 @@ import {
   weekdayShort,
 } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import type { CalendarEvent, MealEntry, Person } from "@/lib/types";
+import type { CalendarEvent, HotLunchMark, MealEntry, Person } from "@/lib/types";
 
 const SLOTS = [8, 10, 12, 14, 16, 18, 20];
 
@@ -37,6 +38,8 @@ export function WeekGrid({
   today,
   events,
   meals = [],
+  hotLunchInitials = ["I", "D"],
+  hotLunchMarks = [],
   people,
   timeZone,
   onDay,
@@ -45,12 +48,15 @@ export function WeekGrid({
   onPrev,
   onNext,
   onToday,
+  onHotLunch,
   compact = false,
 }: {
   days: string[];
   today: string;
   events: CalendarEvent[];
   meals?: MealEntry[];
+  hotLunchInitials?: string[];
+  hotLunchMarks?: HotLunchMark[];
   people: Person[];
   timeZone: string;
   onDay: (day: string) => void;
@@ -59,6 +65,7 @@ export function WeekGrid({
   onPrev: () => void;
   onNext: () => void;
   onToday?: () => void;
+  onHotLunch?: (date: string, initial: string, wanted: boolean) => void;
   compact?: boolean;
 }) {
   const rangeLabel = days[0] && days[6] ? formatWeekRange(days[0], days[6], timeZone) : "";
@@ -93,7 +100,7 @@ export function WeekGrid({
           className="grid min-h-full"
           style={{
             gridTemplateColumns: `3.2rem repeat(${days.length}, minmax(0, 1fr))`,
-            gridTemplateRows: `auto auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.15rem" : "3.1rem"}, 1fr))`,
+            gridTemplateRows: `auto auto auto auto repeat(${SLOTS.length}, minmax(${compact ? "2.15rem" : "3.1rem"}, 1fr))`,
           }}
         >
           <div />
@@ -181,6 +188,23 @@ export function WeekGrid({
               </button>
             );
           })}
+
+          <div className="pr-2 pt-1 text-right text-[0.65rem] font-medium uppercase tracking-wide text-white/45">
+            Hot
+            <span className="block">lunch</span>
+          </div>
+          {days.map((day) => (
+            <div key={`hot-${day}`} className="min-h-11 border-t border-white/8 px-1 py-1">
+              <HotLunchToggles
+                date={day}
+                initials={hotLunchInitials}
+                marks={hotLunchMarks}
+                people={people}
+                compact
+                onToggle={onHotLunch || (() => undefined)}
+              />
+            </div>
+          ))}
 
           {SLOTS.map((slot) => (
             <TimeRow

@@ -139,6 +139,9 @@ export type AppConfig = {
     groupSlug: string;
   };
   photoPrism: PhotoPrismConfig;
+  hotLunch: {
+    initials: string[];
+  };
 };
 
 export type PublicConfig = Omit<AppConfig, "photoPrism"> & {
@@ -183,6 +186,16 @@ export type RecipeDetail = RecipeSummary & {
   mealieUrl?: string;
 };
 
+export type HotLunchMark = {
+  date: string;
+  initial: string;
+};
+
+export type HotLunchState = {
+  initials: string[];
+  marks: HotLunchMark[];
+};
+
 export type DashboardPayload = {
   config: PublicConfig;
   events: CalendarEvent[];
@@ -191,6 +204,7 @@ export type DashboardPayload = {
   weather: WeatherPayload | null;
   status: SyncStatus[];
   range: { from: string; to: string };
+  hotLunch: HotLunchState;
 };
 
 export type EventWriteInput = {

@@ -25,6 +25,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { contrastText } from "@/lib/color";
+import { HotLunchToggles } from "@/components/hot-lunch-toggles";
 import { entryTypeLabel, mealChipColor, mealChipLabel } from "@/lib/media";
 import {
   eventTouchesDay,
@@ -32,7 +33,7 @@ import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/time";
-import type { CalendarEvent, EventWriteInput, MealEntry, Person } from "@/lib/types";
+import type { CalendarEvent, EventWriteInput, HotLunchState, MealEntry, Person } from "@/lib/types";
 
 export type EventSheetState =
   | { open: false }
@@ -43,17 +44,21 @@ export function EventSheet({
   onClose,
   events,
   meals = [],
+  hotLunch,
   people,
   timeZone,
   onChanged,
+  onHotLunch,
 }: {
   state: EventSheetState;
   onClose: () => void;
   events: CalendarEvent[];
   meals?: MealEntry[];
+  hotLunch?: HotLunchState;
   people: Person[];
   timeZone: string;
   onChanged: () => Promise<void> | void;
+  onHotLunch?: (date: string, initial: string, wanted: boolean) => void;
 }) {
   const [view, setView] = useState<"day" | "form">("day");
   const [current, setCurrent] = useState<CalendarEvent | undefined>();
@@ -87,14 +92,29 @@ export function EventSheet({
                 })}
               </SheetTitle>
               <SheetDescription>
-                Tap an event to edit. Mealie dinners and imported school menus stay read-only here.
+                Tap an event to edit. Mark I or D if they want St. John&apos;s hot lunch that day.
+                Mealie dinners and imported school menus stay read-only here.
               </SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 px-4">
               <div className="flex flex-col gap-2 pb-4">
+                {hotLunch && onHotLunch && (
+                  <>
+                    <p className="pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Hot lunch
+                    </p>
+                    <HotLunchToggles
+                      date={day}
+                      initials={hotLunch.initials}
+                      marks={hotLunch.marks}
+                      people={people}
+                      onToggle={onHotLunch}
+                    />
+                  </>
+                )}
                 {dayEvents.length === 0 && dayMeals.length === 0 && (
                   <p className="rounded-xl bg-secondary px-4 py-6 text-muted-foreground">
-                    Nothing on the calendar this day.
+                    Nothing else on the calendar this day.
                   </p>
                 )}
                 {dayMeals.length > 0 && (

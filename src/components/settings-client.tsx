@@ -15,7 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { GoogleCalendarInfo, Person, PublicConfig, SlideshowPayload } from "@/lib/types";
+import type { GoogleCalendarInfo, Person, PublicConfig, SchoolMenuUpload, SlideshowPayload } from "@/lib/types";
+import { entryTypeLabel } from "@/lib/media";
+
+function formatMenuMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  if (!year || !month) return value;
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export function SettingsClient() {
   const params = useSearchParams();
@@ -48,6 +58,12 @@ export function SettingsClient() {
   const [testingPhotos, setTestingPhotos] = useState(false);
   const [zip, setZip] = useState("");
   const [lookingUpZip, setLookingUpZip] = useState(false);
+  const [menuPersonId, setMenuPersonId] = useState("");
+  const [menuType, setMenuType] = useState<"breakfast" | "lunch">("lunch");
+  const [menuMonth, setMenuMonth] = useState("");
+  const [menuFile, setMenuFile] = useState<File | null>(null);
+  const [importingMenu, setImportingMenu] = useState(false);
+  const [menuUploads, setMenuUploads] = useState<SchoolMenuUpload[]>([]);
 
   async function loadConfig() {
     const response = await fetch("/api/config", { cache: "no-store" });
@@ -74,7 +90,22 @@ export function SettingsClient() {
     setPhotoQuery(data.photoPrism.query);
     setPasswordSet(data.photoPrism.passwordSet);
     setLocked(data.settingsPinRequired && !data.settingsUnlocked);
+    if (!menuPersonId && data.people[0]) setMenuPersonId(data.people[0].id);
+    if (!menuMonth) {
+      const now = new Date();
+      setMenuMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    }
+    if (!data.settingsPinRequired || data.settingsUnlocked) {
+      void loadMenus();
+    }
     return data;
+  }
+
+  async function loadMenus() {
+    const response = await fetch("/api/school-menus", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = (await response.json()) as { uploads?: SchoolMenuUpload[] };
+    setMenuUploads(data.uploads || []);
   }
 
   async function loadCalendars() {
@@ -116,6 +147,7 @@ export function SettingsClient() {
     setLocked(false);
     const data = await loadConfig();
     if (data.googleConnected) void loadCalendars();
+    void loadMenus();
   }
 
   async function save() {
@@ -254,6 +286,57 @@ export function SettingsClient() {
     } finally {
       setTestingPhotos(false);
     }
+  }
+
+  async function importSchoolMenu() {
+    if (!menuPersonId) {
+      toast.error("Pick who this menu belongs to.");
+      return;
+    }
+    if (!menuFile) {
+      toast.error("Choose a breakfast or lunch PDF.");
+      return;
+    }
+    setImportingMenu(true);
+    try {
+      const body = new FormData();
+      body.set("file", menuFile);
+      body.set("personId", menuPersonId);
+      body.set("entryType", menuType);
+      body.set("yearMonth", menuMonth);
+      const response = await fetch("/api/school-menus", { method: "POST", body });
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error || "Could not import that PDF");
+        return;
+      }
+      setMenuUploads(data.uploads || []);
+      setMenuFile(null);
+      const who = people.find((item) => item.id === menuPersonId)?.name || "that person";
+      const kind = data.entryType === "breakfast" ? "breakfasts" : "lunches";
+      toast.success(`Imported ${data.mealCount} ${kind} for ${who} · ${data.school} · ${data.monthLabel}`);
+      if (data.personMismatch && data.personHint) {
+        toast.message(`That PDF is labeled for ${data.personHint}.`);
+      }
+    } catch {
+      toast.error("Could not import that PDF");
+    } finally {
+      setImportingMenu(false);
+    }
+  }
+
+  async function deleteSchoolMenu(upload: SchoolMenuUpload) {
+    const response = await fetch(
+      `/api/school-menus?personId=${encodeURIComponent(upload.personId)}&entryType=${encodeURIComponent(upload.entryType)}&yearMonth=${encodeURIComponent(upload.yearMonth)}`,
+      { method: "DELETE" },
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      toast.error(data.error || "Could not remove that menu");
+      return;
+    }
+    setMenuUploads(data.uploads || []);
+    toast.success("Removed that school menu from the wall");
   }
 
   if (!config) {
@@ -622,6 +705,112 @@ export function SettingsClient() {
             ? `Pulling the meal plan from ${config.mealieOpenUrl}.`
             : "Set MEALIE_URL and MEALIE_TOKEN in the server environment. Until then, meals and recipes stay on demo data."}
         </p>
+      </section>
+
+      <section className="glass space-y-3 rounded-2xl p-4">
+        <h2 className="text-xl font-medium">School menus</h2>
+        <p className="text-muted-foreground">
+          Upload a monthly breakfast or lunch PDF. St. John&apos;s calendars put each school-day entrée
+          on the Meals row. West Lutheran FACTS PDFs import only the blue items that were ordered, not
+          every option on the page. Re-uploading the same person, meal, and month replaces that month.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Who this menu is for</Label>
+            <Select
+              value={menuPersonId || "__none__"}
+              onValueChange={(value) => {
+                if (String(value) === "__none__") return;
+                setMenuPersonId(String(value));
+              }}
+            >
+              <SelectTrigger className="h-12 w-full min-h-12">
+                <SelectValue placeholder="Pick a person" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Pick a person</SelectItem>
+                {people.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Breakfast or lunch</Label>
+            <Select
+              value={menuType}
+              onValueChange={(value) => setMenuType(value as "breakfast" | "lunch")}
+            >
+              <SelectTrigger className="h-12 w-full min-h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="breakfast">Breakfast</SelectItem>
+                <SelectItem value="lunch">Lunch</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="menu-month">Month (if the PDF does not say)</Label>
+          <Input
+            id="menu-month"
+            type="month"
+            className="h-12 text-base"
+            value={menuMonth}
+            onChange={(event) => setMenuMonth(event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="menu-pdf">PDF</Label>
+          <Input
+            id="menu-pdf"
+            type="file"
+            accept="application/pdf,.pdf"
+            className="h-12 text-base file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-foreground"
+            onChange={(event) => setMenuFile(event.target.files?.[0] || null)}
+          />
+          {menuFile && <p className="text-sm text-muted-foreground">{menuFile.name}</p>}
+        </div>
+        <Button
+          className="h-12 text-base"
+          type="button"
+          disabled={importingMenu}
+          onClick={() => void importSchoolMenu()}
+        >
+          {importingMenu ? "Reading PDF…" : "Import menu"}
+        </Button>
+        {menuUploads.length > 0 && (
+          <ul className="space-y-2 pt-2">
+            {menuUploads.map((upload) => (
+              <li
+                key={`${upload.personId}-${upload.entryType}-${upload.yearMonth}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2"
+              >
+                <div>
+                  <p className="font-medium">
+                    {upload.personName} · {entryTypeLabel(upload.entryType)} ·{" "}
+                    {formatMenuMonth(upload.yearMonth)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {upload.school} · {upload.mealCount} days
+                    {upload.filename ? ` · ${upload.filename}` : ""}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-10"
+                  onClick={() => void deleteSchoolMenu(upload)}
+                >
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <Button className="h-12 text-base" onClick={() => void save()}>

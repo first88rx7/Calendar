@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { contrastText } from "@/lib/color";
-import { entryTypeLabel } from "@/lib/media";
+import { mealChipColor, mealChipLabel } from "@/lib/media";
 import {
   dayNumber,
   eventTouchesDay,
@@ -13,8 +13,6 @@ import {
 } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, MealEntry, Person } from "@/lib/types";
-
-const MEAL_CHIP = "#C26A3A";
 
 const SLOTS = [8, 10, 12, 14, 16, 18, 20];
 
@@ -165,17 +163,20 @@ export function WeekGrid({
                 onClick={() => onDay(day)}
               >
                 <div className="flex flex-col gap-1">
-                  {dayMeals.map((meal) => (
-                    <span
-                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
-                      className="block rounded-lg px-2 py-1 leading-tight"
-                      style={{ backgroundColor: MEAL_CHIP, color: contrastText(MEAL_CHIP) }}
-                    >
-                      <span className="block truncate text-[0.78rem] font-semibold">
-                        {entryTypeLabel(meal.entryType)} · {meal.title}
+                  {dayMeals.map((meal) => {
+                    const color = mealChipColor(meal);
+                    return (
+                      <span
+                        key={`${meal.date}-${meal.entryType}-${meal.personId || "mealie"}-${meal.title}`}
+                        className="block rounded-lg px-2 py-1 leading-tight"
+                        style={{ backgroundColor: color, color: contrastText(color) }}
+                      >
+                        <span className="block truncate text-[0.78rem] font-semibold">
+                          {mealChipLabel(meal)}
+                        </span>
                       </span>
-                    </span>
-                  ))}
+                    );
+                  })}
                 </div>
               </button>
             );

@@ -12,6 +12,7 @@ The Pi is a **kiosk**. The app runs on the home server that already hosts Mealie
 - Google OAuth on the server (tokens never touch the browser)
 - Open-Meteo weather (no API key)
 - Mealie meal plan + recipe search through the Mealie API
+- School breakfast and lunch PDFs (St. John's calendars and West Lutheran FACTS orders) on the week Meals row
 - An "Open Mealie" page with a back bar for shopping lists and planning
 - Demo data when Google or Mealie are not configured, so you can try the wall UI first
 - Idle dim / night clock, optional PhotoPrism background slideshow, kiosk install scripts, Docker Compose for the server
@@ -87,6 +88,17 @@ MEALIE_GROUP_SLUG=home
 ```
 
 The wall pulls `GET /api/households/mealplans` and `GET /api/recipes`. Recipe photos are proxied so the token stays on the server. Full Mealie (shopping lists, importing, planning) is the Open Mealie button — a webpage with a back bar, not a second recipe app.
+
+## School menus
+
+Monthly breakfast and lunch PDFs are imported in **Settings → School menus**. They stay on the home server (the Pi is still just a kiosk) and show on the week **Meals** row next to Mealie dinners.
+
+- **St. John's Lutheran School** lunch and breakfast calendars: each school day becomes the entrée for that date. No-school days are skipped.
+- **West Lutheran / FACTS** order PDFs: only the **blue** items that were ordered are imported, not the full list of choices. Days marked “No School Lunch being ordered” are skipped.
+
+Assign the PDF to a person so the chip uses their name and color (`Milo · Chick-Fil-A Sandwich`). Re-uploading the same person, breakfast/lunch, and month replaces that month. The PDF itself is not stored.
+
+The parser needs Python with [PyMuPDF](https://pymupdf.readthedocs.io/) on the LXC (`./deploy/lxc-setup.sh` installs it).
 
 ## PhotoPrism background
 

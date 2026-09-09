@@ -12,3 +12,19 @@ export function entryTypeLabel(type: string) {
   if (value === "side") return "Side";
   return type;
 }
+
+const MEALIE_CHIP = "#C26A3A";
+
+export function mealChipLabel(meal: {
+  entryType: string;
+  title: string;
+  personName?: string;
+  source?: string;
+}) {
+  if (meal.personName) return `${meal.personName} · ${meal.title}`;
+  return `${entryTypeLabel(meal.entryType)} · ${meal.title}`;
+}
+
+export function mealChipColor(meal: { personColor?: string; source?: string }) {
+  return meal.personColor || MEALIE_CHIP;
+}

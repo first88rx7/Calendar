@@ -57,7 +57,7 @@ export default function MealsPage() {
       </header>
       {!data.config.mealieConfigured && (
         <p className="rounded-xl bg-secondary px-4 py-3 text-sm text-muted-foreground">
-          Showing sample meals. Add a Mealie URL and API token on the home server to pull your real plan.
+          Showing sample Mealie dinners. Add a Mealie URL and API token on the home server to pull your real plan. School breakfast and lunch PDFs are imported under Settings.
         </p>
       )}
       <div className="grid min-h-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
@@ -84,7 +84,7 @@ export default function MealsPage() {
                   {meals.map((meal) => {
                     const src = mediaSrc(meal.imageUrl);
                     return (
-                      <li key={`${meal.entryType}-${meal.title}`} className="flex gap-3">
+                      <li key={`${meal.entryType}-${meal.personId || "mealie"}-${meal.title}`} className="flex gap-3">
                         {src ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={src} alt="" className="size-16 rounded-xl object-cover" />
@@ -94,6 +94,8 @@ export default function MealsPage() {
                         <div>
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             {entryTypeLabel(meal.entryType)}
+                            {meal.personName ? ` · ${meal.personName}` : ""}
+                            {meal.school ? ` · ${meal.school}` : ""}
                           </p>
                           {meal.recipeSlug ? (
                             <Link
@@ -104,6 +106,9 @@ export default function MealsPage() {
                             </Link>
                           ) : (
                             <p className="text-base font-medium leading-snug">{meal.title}</p>
+                          )}
+                          {meal.detail && (
+                            <p className="text-sm text-muted-foreground">{meal.detail}</p>
                           )}
                         </div>
                       </li>

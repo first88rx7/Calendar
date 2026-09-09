@@ -1,6 +1,7 @@
 import { getPublicConfig } from "@/lib/config";
 import { listStoredEvents, mockRecipes, readWeatherCache, seedMockIfNeeded } from "@/lib/mock";
 import { listMeals, searchRecipes } from "@/lib/mealie";
+import { listSchoolMeals, sortMeals } from "@/lib/school-meals";
 import { listSyncStatus } from "@/lib/sync-state";
 import { eventTouchesDay, shiftDateKey, weekKeys } from "@/lib/time";
 import type { DashboardPayload, RecipeSummary } from "@/lib/types";
@@ -38,7 +39,7 @@ export async function loadDashboard(from: string, to: string): Promise<Dashboard
   return {
     config,
     events,
-    meals: listMeals(mealFrom, mealTo),
+    meals: sortMeals([...listSchoolMeals(mealFrom, mealTo, config.people), ...listMeals(mealFrom, mealTo)]),
     recipes: recipes.slice(0, 24),
     weather: readWeatherCache(),
     status: listSyncStatus(),

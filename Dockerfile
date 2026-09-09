@@ -19,11 +19,14 @@ ENV PORT=3847
 ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/app/data
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates python3 python3-pip \
+  && pip3 install --break-system-packages pymupdf \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-RUN mkdir -p /app/data
+COPY --from=builder /app/scripts ./scripts
+RUN mkdir -p /app/data && chmod +x /app/scripts/parse-school-menu.py
 EXPOSE 3847
 CMD ["node", "server.js"]

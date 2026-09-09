@@ -25,6 +25,40 @@ export type MealEntry = {
   recipeSlug?: string;
   recipeId?: string;
   imageUrl?: string;
+  personId?: string;
+  personName?: string;
+  personColor?: string;
+  source?: "mealie" | "school";
+  detail?: string;
+  school?: string;
+};
+
+export type SchoolMenuUpload = {
+  personId: string;
+  personName: string;
+  entryType: string;
+  yearMonth: string;
+  school: string;
+  sourceKind: string;
+  filename: string;
+  uploadedAt: string;
+  mealCount: number;
+};
+
+export type SchoolMenuParse = {
+  kind: "st-johns" | "facts" | string;
+  school: string;
+  personHint: string | null;
+  mealTypeHint: "breakfast" | "lunch" | string | null;
+  year: number;
+  month: number;
+  meals: Array<{
+    date: string;
+    title: string;
+    detail: string;
+    quantity: number;
+  }>;
+  skipped?: string[];
 };
 
 export type WeatherDay = {

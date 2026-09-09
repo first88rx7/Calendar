@@ -25,7 +25,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { contrastText } from "@/lib/color";
-import { entryTypeLabel } from "@/lib/media";
+import { entryTypeLabel, mealChipColor, mealChipLabel } from "@/lib/media";
 import {
   eventTouchesDay,
   formatEventTime,
@@ -87,7 +87,7 @@ export function EventSheet({
                 })}
               </SheetTitle>
               <SheetDescription>
-                Tap an event to edit. Meals come from Mealie and stay read-only here.
+                Tap an event to edit. Mealie dinners and imported school menus stay read-only here.
               </SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 px-4">
@@ -103,22 +103,27 @@ export function EventSheet({
                   </p>
                 )}
                 {dayMeals.map((meal) => {
+                  const color = mealChipColor(meal);
                   const body = (
                     <>
                       <p className="text-xs uppercase tracking-wide opacity-80">
                         {entryTypeLabel(meal.entryType)}
+                        {meal.school ? ` · ${meal.school}` : ""}
                       </p>
-                      <p className="text-lg font-medium">{meal.title}</p>
+                      <p className="text-lg font-medium">{mealChipLabel(meal)}</p>
+                      {meal.detail && (
+                        <p className="text-sm opacity-80">{meal.detail}</p>
+                      )}
                       {meal.recipeSlug && (
                         <p className="text-sm opacity-80">Open recipe →</p>
                       )}
                     </>
                   );
                   const className = "rounded-xl px-4 py-3 text-left text-white";
-                  const style = { backgroundColor: "#C26A3A" };
+                  const style = { backgroundColor: color, color: contrastText(color) };
                   return meal.recipeSlug ? (
                     <Link
-                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
+                      key={`${meal.date}-${meal.entryType}-${meal.personId || "mealie"}-${meal.title}`}
                       href={`/recipes?open=${meal.recipeSlug}`}
                       className={className}
                       style={style}
@@ -127,7 +132,7 @@ export function EventSheet({
                     </Link>
                   ) : (
                     <div
-                      key={`${meal.date}-${meal.entryType}-${meal.title}`}
+                      key={`${meal.date}-${meal.entryType}-${meal.personId || "mealie"}-${meal.title}`}
                       className={className}
                       style={style}
                     >

@@ -47,6 +47,7 @@ export function MealsRail({
               <li key={`${meal.date}-${meal.entryType}-${meal.title}`}>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
                   {meal.date === tomorrow ? "Tomorrow" : weekdayShort(meal.date, timeZone)} · {entryTypeLabel(meal.entryType)}
+                  {meal.personName ? ` · ${meal.personName}` : ""}
                 </p>
                 {meal.recipeSlug ? (
                   <Link href={`/recipes?open=${meal.recipeSlug}`} className="font-medium hover:underline">
@@ -77,6 +78,7 @@ function MealCard({ meal }: { meal: MealEntry }) {
       <div className="min-w-0">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {entryTypeLabel(meal.entryType)}
+          {meal.personName ? ` · ${meal.personName}` : ""}
         </p>
         {meal.recipeSlug ? (
           <Link href={`/recipes?open=${meal.recipeSlug}`} className="font-medium leading-snug hover:underline">

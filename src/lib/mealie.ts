@@ -174,11 +174,19 @@ function mapDetail(item: Record<string, unknown>): RecipeDetail {
 }
 
 export function listMeals(from: string, to: string): MealEntry[] {
-  return getDb()
-    .prepare(
-      `SELECT date, entry_type as entryType, title, recipe_slug as recipeSlug,
-              recipe_id as recipeId, image_url as imageUrl
-       FROM meals WHERE date >= ? AND date <= ? ORDER BY date, entry_type`,
-    )
-    .all(from, to) as MealEntry[];
+  return (
+    getDb()
+      .prepare(
+        `SELECT date, entry_type as entryType, title, recipe_slug as recipeSlug,
+                recipe_id as recipeId, image_url as imageUrl
+         FROM meals WHERE date >= ? AND date <= ? ORDER BY date, entry_type`,
+      )
+      .all(from, to) as MealEntry[]
+  ).map((meal) => ({
+    ...meal,
+    recipeSlug: meal.recipeSlug || undefined,
+    recipeId: meal.recipeId || undefined,
+    imageUrl: meal.imageUrl || undefined,
+    source: "mealie" as const,
+  }));
 }

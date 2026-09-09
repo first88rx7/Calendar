@@ -66,6 +66,32 @@ function migrate(database: Database.Database) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS school_meals (
+      date TEXT NOT NULL,
+      person_id TEXT NOT NULL,
+      entry_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
+      school TEXT NOT NULL DEFAULT '',
+      source_kind TEXT NOT NULL DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY (date, person_id, entry_type)
+    );
+
+    CREATE INDEX IF NOT EXISTS school_meals_date_idx ON school_meals (date, entry_type);
+
+    CREATE TABLE IF NOT EXISTS school_menu_uploads (
+      person_id TEXT NOT NULL,
+      entry_type TEXT NOT NULL,
+      year_month TEXT NOT NULL,
+      school TEXT NOT NULL DEFAULT '',
+      source_kind TEXT NOT NULL DEFAULT '',
+      filename TEXT NOT NULL DEFAULT '',
+      uploaded_at TEXT NOT NULL,
+      meal_count INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (person_id, entry_type, year_month)
+    );
   `);
 }
 

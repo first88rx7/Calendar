@@ -88,7 +88,7 @@ MEALIE_TOKEN=...
 MEALIE_GROUP_SLUG=home
 ```
 
-The wall pulls `GET /api/households/mealplans` and `GET /api/recipes`. Recipe photos are proxied so the token stays on the server. Full Mealie (shopping lists, importing, planning) is the Open Mealie button — a webpage with a back bar, not a second recipe app.
+The wall pulls `GET /api/households/mealplans` and pages through `GET /api/recipes` (not just the first 24). The home strip still shows five cards at a time and rotates through that larger pool. Recipe photos are proxied so the token stays on the server. Full Mealie (shopping lists, importing, planning) is the Open Mealie button — a webpage with a back bar, not a second recipe app.
 
 ## School menus
 

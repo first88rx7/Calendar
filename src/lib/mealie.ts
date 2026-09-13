@@ -20,7 +20,20 @@ type MealieMealPlan = {
 
 type MealieRecipeList = {
   items?: Array<Record<string, unknown>>;
+  data?: Array<Record<string, unknown>>;
+  page?: number;
+  perPage?: number;
+  per_page?: number;
+  total?: number;
+  totalPages?: number;
+  total_pages?: number;
 };
+
+const RECIPE_PAGE_SIZE = 100;
+const RECIPE_MAX = 400;
+const RECIPE_MAX_PAGES = 8;
+
+let recipeListCache: { at: number; query: string; recipes: RecipeSummary[] } | null = null;
 
 function headers() {
   return {
@@ -97,19 +110,59 @@ export async function syncMeals(from: string, to: string) {
   }
 }
 
+function mealieRecipeItems(data: MealieRecipeList) {
+  return data.items ?? data.data ?? [];
+}
+
+async function fetchAllRecipePages(query: string): Promise<RecipeSummary[]> {
+  const collected: RecipeSummary[] = [];
+  const seen = new Set<string>();
+  let totalPages = RECIPE_MAX_PAGES;
+
+  for (let page = 1; page <= totalPages && collected.length < RECIPE_MAX; page += 1) {
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(RECIPE_PAGE_SIZE),
+      orderBy: "name",
+      orderDirection: "asc",
+    });
+    if (query) params.set("search", query);
+    const response = await mealieFetch(`/api/recipes?${params}`);
+    const data = (await response.json()) as MealieRecipeList;
+    const items = mealieRecipeItems(data);
+    const reportedPages = Number(data.total_pages ?? data.totalPages ?? 0);
+    if (reportedPages > 0) {
+      totalPages = Math.min(reportedPages, RECIPE_MAX_PAGES);
+    }
+    if (items.length === 0) break;
+    for (const item of items) {
+      const summary = mapSummary(item);
+      if (!summary.id || seen.has(summary.id)) continue;
+      seen.add(summary.id);
+      collected.push(summary);
+      if (collected.length >= RECIPE_MAX) break;
+    }
+    if (items.length < RECIPE_PAGE_SIZE) break;
+  }
+
+  return collected;
+}
+
 export async function searchRecipes(query: string): Promise<RecipeSummary[]> {
   if (!mealieConfigured()) {
     return mockRecipes(query);
   }
-  const params = new URLSearchParams({
-    search: query,
-    perPage: "24",
-    orderBy: "name",
-    orderDirection: "asc",
-  });
-  const response = await mealieFetch(`/api/recipes?${params}`);
-  const data = (await response.json()) as MealieRecipeList;
-  return (data.items ?? []).map(mapSummary);
+  const q = query.trim();
+  if (
+    recipeListCache &&
+    recipeListCache.query === q &&
+    Date.now() - recipeListCache.at < 8 * 60 * 1000
+  ) {
+    return recipeListCache.recipes;
+  }
+  const recipes = await fetchAllRecipePages(q);
+  recipeListCache = { at: Date.now(), query: q, recipes };
+  return recipes;
 }
 
 export async function getRecipe(slug: string): Promise<RecipeDetail | null> {

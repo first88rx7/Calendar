@@ -43,7 +43,7 @@ export async function loadDashboard(from: string, to: string): Promise<Dashboard
     config,
     events,
     meals: sortMeals([...listSchoolMeals(mealFrom, mealTo, config.people), ...listMeals(mealFrom, mealTo)]),
-    recipes: recipes.slice(0, 24),
+    recipes,
     weather: readWeatherCache(),
     status: listSyncStatus(),
     range: { from, to },

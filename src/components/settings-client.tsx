@@ -611,9 +611,9 @@ export function SettingsClient() {
       <section className="glass space-y-3 rounded-2xl p-4">
         <h2 className="text-xl font-medium">PhotoPrism background</h2>
         <p className="text-muted-foreground">
-          When a server URL is saved, the wall cycles random photos behind the glass cards. Leave it
-          blank to keep the scenic wallpaper. Credentials stay on the home server; the kiosk only
-          sees proxied images.
+          When a server URL is saved, the wall pages through the album, shuffles those stills, and
+          cycles them behind the glass cards. Leave it blank to keep the scenic wallpaper.
+          Credentials stay on the home server; the kiosk only sees proxied images.
         </p>
         <div className="space-y-2">
           <Label htmlFor="pp-url">PhotoPrism URL</Label>
@@ -662,7 +662,9 @@ export function SettingsClient() {
             Use the id from the PhotoPrism album URL, for example{" "}
             <span className="text-foreground">atkwzfah1bh8tz5w</span> in
             /library/albums/atkwzfah1bh8tz5w/view. Folders work too — the wall looks up
-            that album and searches by its folder path. A full URL is also accepted.
+            that album and searches by its folder path. A full URL is also accepted. After
+            saving, tap Test PhotoPrism — the count should be close to the album size, not
+            stuck around 20.
           </p>
         </div>
         <div className="space-y-2">

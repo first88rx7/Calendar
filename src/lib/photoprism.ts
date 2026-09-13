@@ -8,6 +8,10 @@ export { extractAlbumUid, normalizePhotoPrismUrl };
 const PHOTO_HASH = /^[a-fA-F0-9]{32,64}$/;
 const PREVIEW_SIZES = ["fit_1280", "fit_1920", "fit_720", "tile_500"] as const;
 const PREVIEW_SIZE_SET = new Set<string>(PREVIEW_SIZES);
+/** PhotoPrism's own UI pages; a single count=60 request is why the wall stuck on ~20 stills. */
+const SEARCH_PAGE_SIZE = 100;
+const SEARCH_MAX_PHOTOS = 800;
+const SEARCH_MAX_PAGES = 10;
 
 type SessionCache = {
   token: string;
@@ -201,8 +205,6 @@ function photoSearchAttempts(album: PhotoPrismAlbum | null) {
 
   const make = (extra: Record<string, string>) => {
     const params = new URLSearchParams({
-      count: "60",
-      offset: "0",
       order: "newest",
       merged: "true",
       ...extra,
@@ -253,6 +255,63 @@ function photoSearchAttempts(album: PhotoPrismAlbum | null) {
   return attempts;
 }
 
+async function searchWithAuth(session: SessionCache, path: string) {
+  let response = await photoprismFetch(path, { token: session.token || undefined });
+  if (response.status === 401 && session.token) {
+    sessionCache = null;
+    const retrySession = await getSession(true);
+    session.token = retrySession.token;
+    session.previewToken = retrySession.previewToken || session.previewToken;
+    response = await photoprismFetch(path, { token: retrySession.token || undefined });
+  }
+  return response;
+}
+
+function photoKey(photo: PhotoPrismPhoto) {
+  return photoHash(photo) || photo.UID || photo.uid || "";
+}
+
+async function collectSearchPages(session: SessionCache, base: URLSearchParams) {
+  const collected: PhotoPrismPhoto[] = [];
+  const seen = new Set<string>();
+  let previewToken = session.previewToken;
+
+  for (let page = 0; page < SEARCH_MAX_PAGES && collected.length < SEARCH_MAX_PHOTOS; page += 1) {
+    const params = new URLSearchParams(base);
+    params.set("count", String(SEARCH_PAGE_SIZE));
+    params.set("offset", String(page * SEARCH_PAGE_SIZE));
+    const response = await searchWithAuth(session, `/api/v1/photos?${params}`);
+    if (!response.ok) {
+      const detail = await readErrorDetail(response);
+      if (page > 0 && collected.length > 0) break;
+      return {
+        ok: false as const,
+        status: response.status,
+        detail,
+        photos: collected,
+        previewToken,
+      };
+    }
+    previewToken = response.headers.get("X-Preview-Token") || previewToken;
+    const batch = await parsePhotoList(response);
+    if (batch.length === 0) break;
+    for (const photo of batch) {
+      const key = photoKey(photo);
+      if (key) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      collected.push(photo);
+      if (collected.length >= SEARCH_MAX_PHOTOS) break;
+    }
+    const xCount = Number(response.headers.get("X-Count") ?? batch.length);
+    const xLimit = Number(response.headers.get("X-Limit") ?? SEARCH_PAGE_SIZE);
+    if (batch.length < SEARCH_PAGE_SIZE || xCount < xLimit) break;
+  }
+
+  return { ok: true as const, status: 200, detail: "", photos: collected, previewToken };
+}
+
 async function searchPhotos(session: SessionCache) {
   const uid = resolvedSettings().albumUid;
   const album = uid ? await loadAlbum(session, uid) : null;
@@ -263,30 +322,27 @@ async function searchPhotos(session: SessionCache) {
   const attempts = photoSearchAttempts(album);
   let emptyOk = false;
   let previewToken = session.previewToken;
+  let best: PhotoPrismPhoto[] = [];
   for (const params of attempts) {
-    const path = `/api/v1/photos?${params}`;
-    let response = await photoprismFetch(path, { token: session.token || undefined });
-    if (response.status === 401 && session.token) {
-      sessionCache = null;
-      const retrySession = await getSession(true);
-      session.token = retrySession.token;
-      session.previewToken = retrySession.previewToken || session.previewToken;
-      response = await photoprismFetch(path, { token: retrySession.token || undefined });
-    }
-    if (response.ok) {
-      const photos = await parsePhotoList(response);
-      previewToken = response.headers.get("X-Preview-Token") || previewToken;
-      if (photos.length > 0) {
-        return { photos, previewToken };
+    const result = await collectSearchPages(session, params);
+    previewToken = result.previewToken || previewToken;
+    if (result.ok) {
+      if (result.photos.length > best.length) {
+        best = result.photos;
       }
-      emptyOk = true;
+      if (result.photos.length === 0) emptyOk = true;
+      // A short first page may be the wrong filter (folder albums). Keep
+      // trying until a strategy returns a full page, then trust pagination.
+      if (best.length >= SEARCH_PAGE_SIZE) break;
       continue;
     }
-    const detail = await readErrorDetail(response);
-    lastMessage = `PhotoPrism photos failed (${response.status}${detail ? `: ${detail}` : ""})`;
-    if (response.status !== 400 && response.status !== 404) {
+    lastMessage = `PhotoPrism photos failed (${result.status}${result.detail ? `: ${result.detail}` : ""})`;
+    if (result.status !== 400 && result.status !== 404) {
       throw new Error(lastMessage);
     }
+  }
+  if (best.length > 0) {
+    return { photos: best, previewToken };
   }
   if (emptyOk) {
     throw new Error(`PhotoPrism signed in, but ${label} returned no still photos.`);
@@ -327,10 +383,12 @@ export async function listSlideshowPhotos(force = false) {
         expiresAt: sessionCache?.expiresAt || Date.now() + 10 * 60 * 60 * 1000,
       };
     }
+    const seen = new Set<string>();
     const mapped = shuffle(photos)
       .map((photo) => {
         const hash = photoHash(photo);
-        if (!hash) return null;
+        if (!hash || seen.has(hash)) return null;
+        seen.add(hash);
         return {
           hash,
           src: `/api/photos/image?hash=${encodeURIComponent(hash)}&size=fit_1280`,

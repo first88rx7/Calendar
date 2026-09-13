@@ -146,3 +146,19 @@ export function hourInZone(iso: string, timeZone: string) {
 export function rollingDays(startKey: string, count = 7) {
   return Array.from({ length: count }, (_, i) => shiftDateKey(startKey, i));
 }
+
+export function yearMonthKey(timeZone: string, now = new Date()) {
+  return todayKey(timeZone, now).slice(0, 7);
+}
+
+export function shiftYearMonth(yearMonth: string, delta: number) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  if (!year || !month) return yearMonth;
+  const date = new Date(year, month - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Oldest YYYY-MM to keep: previous calendar month in the household timezone. */
+export function schoolMenuKeepFrom(timeZone: string, now = new Date()) {
+  return shiftYearMonth(yearMonthKey(timeZone, now), -1);
+}

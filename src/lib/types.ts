@@ -3,6 +3,8 @@ export type Person = {
   name: string;
   color: string;
   calendarId: string;
+  /** People with the same value share school breakfast/lunch menus. */
+  lunchGroup?: string;
 };
 
 export type CalendarEvent = {
@@ -36,6 +38,7 @@ export type MealEntry = {
 export type SchoolMenuUpload = {
   personId: string;
   personName: string;
+  personIds?: string[];
   entryType: string;
   yearMonth: string;
   school: string;

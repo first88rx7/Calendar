@@ -1,7 +1,7 @@
 import { getPublicConfig } from "@/lib/config";
 import { listStoredEvents, mockRecipes, readWeatherCache, seedMockIfNeeded } from "@/lib/mock";
 import { listMeals, searchRecipes } from "@/lib/mealie";
-import { listSchoolMeals, sortMeals } from "@/lib/school-meals";
+import { listSchoolMeals, pruneOldSchoolMenus, sortMeals } from "@/lib/school-meals";
 import { hotLunchState } from "@/lib/hot-lunch";
 import { listSyncStatus } from "@/lib/sync-state";
 import { eventTouchesDay, shiftDateKey, weekKeys } from "@/lib/time";
@@ -10,6 +10,7 @@ import type { DashboardPayload, RecipeSummary } from "@/lib/types";
 export async function loadDashboard(from: string, to: string): Promise<DashboardPayload> {
   seedMockIfNeeded();
   const config = getPublicConfig();
+  pruneOldSchoolMenus(config.weather.timezone);
   const tz = config.weather.timezone;
   const allowed = new Set(config.people.map((person) => person.calendarId).filter(Boolean));
   const events = listStoredEvents(shiftDateKey(from, -1), shiftDateKey(to, 1))
@@ -42,7 +43,10 @@ export async function loadDashboard(from: string, to: string): Promise<Dashboard
   return {
     config,
     events,
-    meals: sortMeals([...listSchoolMeals(mealFrom, mealTo, config.people), ...listMeals(mealFrom, mealTo)]),
+    meals: sortMeals(
+      [...listSchoolMeals(mealFrom, mealTo, config.people), ...listMeals(mealFrom, mealTo)],
+      config.people,
+    ),
     recipes,
     weather: readWeatherCache(),
     status: listSyncStatus(),

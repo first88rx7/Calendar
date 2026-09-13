@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { contrastText } from "@/lib/color";
 import { HotLunchToggles } from "@/components/hot-lunch-toggles";
+import { sortEventsByPeople } from "@/lib/lunch-groups";
 import { entryTypeLabel, mealChipColor, mealChipLabel } from "@/lib/media";
 import {
   eventTouchesDay,
@@ -70,8 +71,11 @@ export function EventSheet({
   }, [state]);
 
   const day = state.open ? state.day : "";
-  const dayEvents = events.filter((event) =>
-    day ? eventTouchesDay(event.startIso, event.endIso, event.allDay, day, timeZone) : false,
+  const dayEvents = sortEventsByPeople(
+    events.filter((event) =>
+      day ? eventTouchesDay(event.startIso, event.endIso, event.allDay, day, timeZone) : false,
+    ),
+    people,
   );
   const dayMeals = meals.filter((meal) => meal.date === day);
 

@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { HotLunchToggles } from "@/components/hot-lunch-toggles";
 import { contrastText } from "@/lib/color";
+import { sortEventsByPeople } from "@/lib/lunch-groups";
 import { mealChipColor, mealChipLabel } from "@/lib/media";
 import {
   dayNumber,
@@ -132,9 +133,12 @@ export function WeekGrid({
             All day
           </div>
           {days.map((day) => {
-            const allDay = events.filter(
-              (event) =>
-                event.allDay && eventTouchesDay(event.startIso, event.endIso, true, day, timeZone),
+            const allDay = sortEventsByPeople(
+              events.filter(
+                (event) =>
+                  event.allDay && eventTouchesDay(event.startIso, event.endIso, true, day, timeZone),
+              ),
+              people,
             );
             return (
               <div
@@ -245,11 +249,14 @@ function TimeRow({
     <>
       <div className="pr-2 pt-1 text-right text-[0.7rem] text-white/45">{slotLabel(slot)}</div>
       {days.map((day) => {
-        const slotEvents = events.filter((event) => {
-          if (event.allDay) return false;
-          if (!eventTouchesDay(event.startIso, event.endIso, false, day, timeZone)) return false;
-          return slotForHour(hourInZone(event.startIso, timeZone)) === slot;
-        });
+        const slotEvents = sortEventsByPeople(
+          events.filter((event) => {
+            if (event.allDay) return false;
+            if (!eventTouchesDay(event.startIso, event.endIso, false, day, timeZone)) return false;
+            return slotForHour(hourInZone(event.startIso, timeZone)) === slot;
+          }),
+          people,
+        );
         return (
           <button
             key={`${day}-${slot}`}

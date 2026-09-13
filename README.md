@@ -98,7 +98,7 @@ Monthly breakfast and lunch PDFs are imported in **Settings → School menus**. 
 - The week grid has a **Hot lunch** row with **I** and **D** (changeable in Settings). Tap an initial to mark that they want St. John's hot lunch that day — the same thing as checking the paper calendar. Marks are stored on the LXC, not the Pi.
 - **West Lutheran / FACTS** order PDFs: only the **blue** items that were ordered are imported, not the full list of choices. Days marked “No School Lunch being ordered” are skipped.
 
-Assign the PDF to a person so the chip uses their name and color (`Milo · Chick-Fil-A Sandwich`). Re-uploading the same person, breakfast/lunch, and month replaces that month. The PDF itself is not stored.
+Assign the PDF to a lunch group so each child in that group gets a chip (`Ian · Pizza`, `Daphne · Pizza`). Ian and Daphne can share St. John's; Milo keeps his own FACTS menu. Re-uploading the same group, breakfast/lunch, and month replaces that month. Only the current month and the previous month are kept. The PDF itself is not stored.
 
 The parser needs Python with [PyMuPDF](https://pymupdf.readthedocs.io/) on the LXC (`./deploy/lxc-setup.sh` installs it).
 

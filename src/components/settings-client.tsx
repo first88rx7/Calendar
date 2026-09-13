@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useIdleDim } from "@/components/idle-dim";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  listLunchGroups,
+  lunchShareValue,
+  setLunchShare,
+} from "@/lib/lunch-groups";
 import type { GoogleCalendarInfo, Person, PublicConfig, SchoolMenuUpload, SlideshowPayload } from "@/lib/types";
 import { entryTypeLabel } from "@/lib/media";
 
@@ -91,7 +97,9 @@ export function SettingsClient() {
     setPhotoQuery(data.photoPrism.query);
     setPasswordSet(data.photoPrism.passwordSet);
     setLocked(data.settingsPinRequired && !data.settingsUnlocked);
-    if (!menuPersonId && data.people[0]) setMenuPersonId(data.people[0].id);
+    if (!menuPersonId && data.people[0]) {
+      setMenuPersonId(listLunchGroups(data.people)[0]?.id || data.people[0].id);
+    }
     if (!menuMonth) {
       const now = new Date();
       setMenuMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
@@ -248,15 +256,28 @@ export function SettingsClient() {
 
   function addPerson() {
     const n = people.length + 1;
+    const id = `person-${Date.now()}`;
     setPeople((current) => [
       ...current,
       {
-        id: `person-${Date.now()}`,
+        id,
         name: `Person ${n}`,
         color: n % 2 === 0 ? "#6B5B95" : "#3B6FDB",
         calendarId: "",
+        lunchGroup: id,
       },
     ]);
+  }
+
+  function movePerson(index: number, direction: -1 | 1) {
+    setPeople((current) => {
+      const next = index + direction;
+      if (next < 0 || next >= current.length) return current;
+      const copy = [...current];
+      const [item] = copy.splice(index, 1);
+      copy.splice(next, 0, item);
+      return copy;
+    });
   }
 
   async function disconnect() {
@@ -292,7 +313,10 @@ export function SettingsClient() {
   }
 
   async function importSchoolMenu() {
-    if (!menuPersonId) {
+    const groups = listLunchGroups(people);
+    const groupId =
+      groups.some((group) => group.id === menuPersonId) ? menuPersonId : groups[0]?.id || "";
+    if (!groupId) {
       toast.error("Pick who this menu belongs to.");
       return;
     }
@@ -304,7 +328,8 @@ export function SettingsClient() {
     try {
       const body = new FormData();
       body.set("file", menuFile);
-      body.set("personId", menuPersonId);
+      body.set("lunchGroup", groupId);
+      body.set("people", JSON.stringify(people));
       body.set("entryType", menuType);
       body.set("yearMonth", menuMonth);
       const response = await fetch("/api/school-menus", { method: "POST", body });
@@ -315,7 +340,7 @@ export function SettingsClient() {
       }
       setMenuUploads(data.uploads || []);
       setMenuFile(null);
-      const who = people.find((item) => item.id === menuPersonId)?.name || "that person";
+      const who = data.groupLabel || groups.find((group) => group.id === groupId)?.label || "that group";
       const kind = data.entryType === "breakfast" ? "breakfasts" : "lunches";
       toast.success(`Imported ${data.mealCount} ${kind} for ${who} · ${data.school} · ${data.monthLabel}`);
       if (data.personMismatch && data.personHint) {
@@ -330,7 +355,7 @@ export function SettingsClient() {
 
   async function deleteSchoolMenu(upload: SchoolMenuUpload) {
     const response = await fetch(
-      `/api/school-menus?personId=${encodeURIComponent(upload.personId)}&entryType=${encodeURIComponent(upload.entryType)}&yearMonth=${encodeURIComponent(upload.yearMonth)}`,
+      `/api/school-menus?lunchGroup=${encodeURIComponent(upload.personId)}&entryType=${encodeURIComponent(upload.entryType)}&yearMonth=${encodeURIComponent(upload.yearMonth)}`,
       { method: "DELETE" },
     );
     const data = await response.json();
@@ -363,6 +388,11 @@ export function SettingsClient() {
       </div>
     );
   }
+
+  const lunchGroups = listLunchGroups(people);
+  const selectedMenuGroup = lunchGroups.some((group) => group.id === menuPersonId)
+    ? menuPersonId
+    : lunchGroups[0]?.id || "";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-10">
@@ -398,17 +428,41 @@ export function SettingsClient() {
           )}
         </div>
         {people.map((person, index) => (
-          <div key={person.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
-            <Input
-              className="h-12 text-base"
-              value={person.name}
-              onChange={(event) =>
-                setPeople((current) =>
-                  current.map((item, i) => (i === index ? { ...item, name: event.target.value } : item)),
-                )
-              }
-              aria-label="Person name"
-            />
+          <div key={person.id} className="space-y-2 rounded-xl bg-white/5 p-3">
+            <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="size-12 p-0"
+                  disabled={index === 0}
+                  aria-label={`Move ${person.name} up`}
+                  onClick={() => movePerson(index, -1)}
+                >
+                  <ChevronUp className="size-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="size-12 p-0"
+                  disabled={index === people.length - 1}
+                  aria-label={`Move ${person.name} down`}
+                  onClick={() => movePerson(index, 1)}
+                >
+                  <ChevronDown className="size-5" />
+                </Button>
+              </div>
+              <Input
+                className="h-12 min-h-12 flex-1 text-base"
+                value={person.name}
+                onChange={(event) =>
+                  setPeople((current) =>
+                    current.map((item, i) => (i === index ? { ...item, name: event.target.value } : item)),
+                  )
+                }
+                aria-label="Person name"
+              />
+            </div>
             <Select
               value={person.calendarId || "__none__"}
               onValueChange={(value) => {
@@ -434,7 +488,7 @@ export function SettingsClient() {
                 )}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
+            <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
               <input
                 type="color"
                 value={person.color}
@@ -446,6 +500,26 @@ export function SettingsClient() {
                 className="size-12 cursor-pointer rounded-xl border border-white/15 bg-transparent p-1"
                 aria-label={`${person.name} color`}
               />
+              <Select
+                value={lunchShareValue(person, people)}
+                onValueChange={(value) =>
+                  setPeople((current) => setLunchShare(current, person.id, String(value)))
+                }
+              >
+                <SelectTrigger className="h-12 w-full min-h-12">
+                  <SelectValue placeholder="School lunches" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__own__">Only this person&apos;s school menus</SelectItem>
+                  {people
+                    .filter((item) => item.id !== person.id)
+                    .map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        Same school menus as {item.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
               {people.length > 1 && (
                 <Button
                   type="button"
@@ -459,6 +533,10 @@ export function SettingsClient() {
             </div>
           </div>
         ))}
+        <p className="text-sm text-muted-foreground">
+          Up and down change the order of chips on the week calendar. Save settings after you move
+          people or join school menus (Ian and Daphne can share St. John&apos;s; Milo stays separate).
+        </p>
         <Button type="button" variant="secondary" className="h-12 text-base" onClick={addPerson}>
           Add person
         </Button>
@@ -715,9 +793,10 @@ export function SettingsClient() {
       <section className="glass space-y-3 rounded-2xl p-4">
         <h2 className="text-xl font-medium">School menus</h2>
         <p className="text-muted-foreground">
-          Upload a monthly breakfast or lunch PDF. St. John&apos;s calendars put each school-day entrée
-          on the Meals row. West Lutheran FACTS PDFs import only the blue items that were ordered, not
-          every option on the page. Re-uploading the same person, meal, and month replaces that month.
+          Upload a monthly breakfast or lunch PDF once per lunch group. Set Ian and Daphne to the same
+          school menus above, then import St. John&apos;s for that group; Milo gets his own FACTS PDF.
+          Chips show each child&apos;s name and color on the week Meals row. Re-uploading the same group,
+          breakfast/lunch, and month replaces that month. Only this month and last month are kept.
         </p>
         <div className="space-y-2">
           <Label htmlFor="hot-lunch">Hot lunch initials</Label>
@@ -737,20 +816,20 @@ export function SettingsClient() {
           <div className="space-y-2">
             <Label>Who this menu is for</Label>
             <Select
-              value={menuPersonId || "__none__"}
+              value={selectedMenuGroup || "__none__"}
               onValueChange={(value) => {
                 if (String(value) === "__none__") return;
                 setMenuPersonId(String(value));
               }}
             >
               <SelectTrigger className="h-12 w-full min-h-12">
-                <SelectValue placeholder="Pick a person" />
+                <SelectValue placeholder="Pick who shares this menu" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">Pick a person</SelectItem>
-                {people.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.name}
+                <SelectItem value="__none__">Pick who shares this menu</SelectItem>
+                {lunchGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.label}
                   </SelectItem>
                 ))}
               </SelectContent>

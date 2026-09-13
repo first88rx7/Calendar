@@ -3,6 +3,7 @@ import { getPublicConfig, readStoredConfig, writeConfig } from "@/lib/config";
 import { extractAlbumUid, normalizePhotoPrismUrl } from "@/lib/photoprism-url";
 import { settingsUnlocked } from "@/lib/settings-auth";
 import { normalizeHotLunchInitials } from "@/lib/hot-lunch-marks";
+import { normalizePeople } from "@/lib/lunch-groups";
 import type { AppConfig } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,10 +29,7 @@ export async function PUT(request: NextRequest) {
   const next: AppConfig = {
     ...current,
     ...patch,
-    people: (patch.people ?? current.people).map((person) => ({
-      ...person,
-      calendarId: person.calendarId.startsWith("mock:") ? "" : person.calendarId,
-    })),
+    people: normalizePeople(patch.people ?? current.people),
     weather: { ...current.weather, ...(patch.weather || {}) },
     mealie: { ...current.mealie, ...(patch.mealie || {}) },
     hotLunch: {
@@ -73,6 +71,12 @@ export async function PUT(request: NextRequest) {
   next.photoPrism.url = normalizePhotoPrismUrl(next.photoPrism.url);
   next.photoPrism.albumUid = extractAlbumUid(next.photoPrism.albumUid);
   writeConfig(next);
+  try {
+    const { syncSchoolMenusToPeople } = await import("@/lib/school-meals");
+    syncSchoolMenusToPeople(next.people, next.weather.timezone);
+  } catch (error) {
+    console.error("School menu sync after settings save failed", error);
+  }
   const { invalidatePhotoCache } = await import("@/lib/photoprism");
   invalidatePhotoCache();
   if (patch.weather) {

@@ -16,9 +16,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   sleepShowClock: true,
   photoRotateSec: 45,
   people: [
-    { id: "alex", name: "Alex", color: "#3B9B5C", calendarId: "" },
-    { id: "sam", name: "Sam", color: "#6B5B95", calendarId: "" },
-    { id: "family", name: "Family", color: "#3B6FDB", calendarId: "" },
+    { id: "alex", name: "Alex", color: "#3B9B5C", calendarId: "", lunchGroup: "alex" },
+    { id: "sam", name: "Sam", color: "#6B5B95", calendarId: "", lunchGroup: "sam" },
+    { id: "family", name: "Family", color: "#3B6FDB", calendarId: "", lunchGroup: "family" },
   ],
   weather: {
     latitude: 47.6062,

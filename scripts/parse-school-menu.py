@@ -96,6 +96,10 @@ BOILERPLATE_RE = re.compile(
     | cinnamon\s+roll\s+day
     | national\s+\w+\s+month
     | start\s+your\s+day
+    | st\.?\s*john
+    | lutheran\s+school
+    | this\s+institution
+    | opportunity\s+provider
     """,
     re.IGNORECASE | re.VERBOSE,
 )
@@ -265,6 +269,27 @@ def nearest_index(value: float, centers: list[float]) -> int:
     return min(range(len(centers)), key=lambda i: abs(value - centers[i]))
 
 
+def column_peaks(xs: list[float], k: int = 5, min_sep: float = 50.0) -> list[float]:
+    """Pick the k densest left-edges. k-means follows footer/NO SCHOOL text and
+    collapses Tuesday into Wednesday on St. John's landscape grids."""
+    if not xs:
+        return []
+    bins: dict[int, list[float]] = defaultdict(list)
+    for x in xs:
+        bins[int(round(x / 8.0) * 8)].append(x)
+    ranked = sorted(bins.items(), key=lambda item: -len(item[1]))
+    peaks: list[float] = []
+    for _edge, pts in ranked:
+        mean = sum(pts) / len(pts)
+        if any(abs(mean - peak) < min_sep for peak in peaks):
+            continue
+        peaks.append(mean)
+        if len(peaks) >= k:
+            break
+    peaks.sort()
+    return peaks
+
+
 def monday_weeks(year: int, month: int) -> list[list[date]]:
     first = date(year, month, 1)
     start = first - timedelta(days=first.weekday())
@@ -326,11 +351,12 @@ def parse_st_johns(spans: list[dict], page_width: float, year: int, month: int, 
     body = [s for s in spans if s["y"] > 120 and not is_boilerplate(s["text"])]
     if not body:
         raise ValueError("Could not find menu items on this St. John's calendar.")
-    # Column centers from the denser week rows (skip the first partial week notes).
-    xs = [s["x"] for s in body if s["y"] > min(s["y"] for s in body) + 40]
-    if len(xs) < 10:
-        xs = [s["x"] for s in body]
-    centers = kmeans_1d(xs, 5)
+    # Menu type is ~9pt. Larger "NO SCHOOL" / "Grandparents Day" labels sit
+    # off the five column left-edges and used to yank k-means off Tuesday.
+    item_xs = [s["x"] for s in body if s["size"] < 13]
+    centers = column_peaks(item_xs, 5)
+    if len(centers) < 5:
+        centers = kmeans_1d(item_xs or [s["x"] for s in body], 5)
     if len(centers) < 5:
         left = 36.0
         centers = [left + i * ((page_width - left) / 5) + 20 for i in range(5)]
@@ -343,6 +369,8 @@ def parse_st_johns(spans: list[dict], page_width: float, year: int, month: int, 
             break
         by_col: dict[int, list[str]] = defaultdict(list)
         for span in sorted(row, key=lambda s: (s["y"], s["x"])):
+            if re.fullmatch(r"[\d\s/,]*(?:oz|floz|ea\.?|pkg|c|cups?)", span["text"], re.I):
+                continue
             col = nearest_index(span["x"], centers)
             by_col[col].append(span["text"])
         for col in range(5):
